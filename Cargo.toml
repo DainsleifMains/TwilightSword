@@ -4,8 +4,16 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+diesel_migrations = "2.2.0"
 knus = "3.2.0"
 miette = { version = "5.10.0", features = ["fancy"] }
+
+[dependencies.diesel]
+version = "2.2.6"
+features = [
+	"postgres",
+	"r2d2"
+]
 
 [dependencies.serenity]
 version = "0.12.4"

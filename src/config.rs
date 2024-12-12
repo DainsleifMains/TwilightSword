@@ -18,4 +18,20 @@ pub async fn parse_config(config_path: &str) -> Result<ConfigDocument> {
 pub struct ConfigDocument {
 	#[knus(child, unwrap(argument))]
 	pub discord_token: String,
+	#[knus(child)]
+	pub database: DatabaseArgs,
+}
+
+#[derive(Debug, Decode)]
+pub struct DatabaseArgs {
+	#[knus(child, unwrap(argument))]
+	pub host: String,
+	#[knus(child, unwrap(argument))]
+	pub port: Option<u16>,
+	#[knus(child, unwrap(argument))]
+	pub username: String,
+	#[knus(child, unwrap(argument))]
+	pub password: String,
+	#[knus(child, unwrap(argument))]
+	pub database: String,
 }
