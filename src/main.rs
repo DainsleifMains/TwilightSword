@@ -10,6 +10,8 @@ use serenity::prelude::*;
 mod config;
 mod database;
 mod discord;
+mod model;
+mod schema;
 
 use database::{connect_db, run_embedded_migrations, DatabaseConnection};
 
