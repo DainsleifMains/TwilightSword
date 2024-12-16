@@ -4,9 +4,9 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+use super::commands::{command_definitions, route_command};
 use serenity::async_trait;
-use serenity::builder::{CreateCommand, CreateInteractionResponse, CreateInteractionResponseMessage};
-use serenity::model::application::{Command, CommandType, Interaction};
+use serenity::model::application::{Command, Interaction};
 use serenity::model::gateway::Ready;
 use serenity::prelude::*;
 
@@ -16,22 +16,17 @@ pub struct Handler;
 impl EventHandler for Handler {
 	async fn interaction_create(&self, ctx: Context, interaction: Interaction) {
 		if let Interaction::Command(command) = interaction {
-			if command.data.name.as_str() == "ping" {
-				let message = CreateInteractionResponseMessage::new().content("Pong!");
-				let _ = command
-					.create_response(&ctx.http, CreateInteractionResponse::Message(message))
-					.await;
+			let command_result = route_command(ctx, command).await;
+			if let Err(error) = command_result {
+				eprintln!("Command error: {}", error);
 			}
 		}
 	}
 
 	async fn ready(&self, ctx: Context, _data_about_bot: Ready) {
-		let ping_command = CreateCommand::new("ping")
-			.kind(CommandType::ChatInput)
-			.description("Pings");
-		let commands = vec![ping_command];
+		let commands = command_definitions();
 		Command::set_global_commands(&ctx.http, commands)
 			.await
-			.expect("Commands registered");
+			.expect("Commands should have registered successfully");
 	}
 }

@@ -19,7 +19,7 @@ pub enum BuiltInTicketCategory {
 }
 
 /// Gets a guild that's using the bot and its various settings.
-#[derive(Insertable, Queryable)]
+#[derive(Default, Insertable, Queryable)]
 pub struct Guild {
 	/// The ID of the guild in question.
 	///
@@ -262,7 +262,7 @@ impl Ticket {
 }
 
 /// Converts an ID used with Discord (unsigned) to an ID for Postgres use (signed)
-pub fn database_id_from_discord(discord_id: u64) -> i64 {
+pub fn database_id_from_discord_id(discord_id: u64) -> i64 {
 	discord_id as i64
 }
 
