@@ -5,6 +5,8 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 mod commands;
-mod handler;
+mod connection;
+mod interactions;
+mod state;
 
-pub use handler::Handler;
+pub use connection::run_bot;

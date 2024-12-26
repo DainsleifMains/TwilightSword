@@ -9,17 +9,10 @@ use diesel::prelude::*;
 use diesel::r2d2::{ConnectionManager, Pool};
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
 use miette::{Diagnostic, IntoDiagnostic};
-use serenity::prelude::*;
 use std::error::Error;
 use std::fmt;
 
 const MIGRATIONS: EmbeddedMigrations = embed_migrations!();
-
-pub struct DatabaseConnection;
-
-impl TypeMapKey for DatabaseConnection {
-	type Value = Pool<ConnectionManager<PgConnection>>;
-}
 
 // To get boxed errors (as returned by the migration runner) into miette, we need a wrapper type for them.
 #[derive(Debug, Diagnostic)]

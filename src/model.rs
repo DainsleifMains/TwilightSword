@@ -7,7 +7,8 @@
 use crate::schema::{custom_categories, form_questions, forms, guilds, tickets};
 use diesel::prelude::*;
 use diesel_derive_enum::DbEnum;
-use serenity::model::id::{ChannelId, GuildId, RoleId, UserId};
+use twilight_model::id::marker::{ChannelMarker, GuildMarker, InteractionMarker, RoleMarker, UserMarker};
+use twilight_model::id::Id;
 
 #[derive(DbEnum, Debug)]
 #[ExistingTypePath = "crate::schema::sql_types::BuiltInTicketCategory"]
@@ -32,6 +33,12 @@ pub struct Guild {
 	pub start_ticket_channel: Option<i64>,
 	/// The message used in the "open a ticket" channel.
 	pub start_ticket_message: String,
+	/// The interaction ID of the active message posted by the bot for starting a ticket.
+	///
+	/// To get a Discord-facing version of this more easily, use [Self::get_start_ticket_interaction].
+	pub start_ticket_interaction: Option<i64>,
+	/// The token used with the Discord API for updating the start ticket message.
+	pub start_ticket_token: Option<String>,
 	/// The ID of the channel to which ban appeal tickets are sent.
 	/// If the feature is disabled, no ID will be entered.
 	///
@@ -79,76 +86,84 @@ impl Guild {
 	/// Gets the Discord-facing guild information.
 	///
 	/// For the raw database representation, use [Self::guild_id].
-	pub fn get_guild_id(&self) -> GuildId {
-		GuildId::new(discord_id_from_database_id(self.guild_id))
+	pub fn get_guild_id(&self) -> Id<GuildMarker> {
+		Id::new(discord_id_from_database_id(self.guild_id))
 	}
 
 	/// Gets the channel in which the "open a ticket here!" message is sent.
 	/// If the feature is disabled, no channel will be returned.
 	///
 	/// For the raw database representation, use [Self::start_ticket_channel].
-	pub fn get_start_ticket_channel(&self) -> Option<ChannelId> {
+	pub fn get_start_ticket_channel(&self) -> Option<Id<ChannelMarker>> {
 		self.start_ticket_channel
-			.map(|database_id| ChannelId::new(discord_id_from_database_id(database_id)))
+			.map(|database_id| Id::new(discord_id_from_database_id(database_id)))
+	}
+
+	/// If a message is posted to the start ticket channel, the interaction ID of that message.
+	///
+	/// For the raw database representation, use [Self::start_ticket_integration].
+	pub fn get_start_ticket_interaction(&self) -> Option<Id<InteractionMarker>> {
+		self.start_ticket_interaction
+			.map(|database_id| Id::new(discord_id_from_database_id(database_id)))
 	}
 
 	/// Gets the channel to which ban appeal tickets are sent.
 	/// If the feature is disabled, no channel will be returned.
 	///
 	/// For the raw database representation, use [Self::ban_appeal_ticket_channel].
-	pub fn get_ban_appeal_ticket_channel(&self) -> Option<ChannelId> {
+	pub fn get_ban_appeal_ticket_channel(&self) -> Option<Id<ChannelMarker>> {
 		self.ban_appeal_ticket_channel
-			.map(|database_id| ChannelId::new(discord_id_from_database_id(database_id)))
+			.map(|database_id| Id::new(discord_id_from_database_id(database_id)))
 	}
 
 	/// Gets the channel to which new partnership request tickets are sent.
 	/// If the feature is disabled, no channel will be returned.
 	///
 	/// For the raw database representation, use [Self::new_partner_ticket_channel].
-	pub fn get_new_partner_ticket_channel(&self) -> Option<ChannelId> {
+	pub fn get_new_partner_ticket_channel(&self) -> Option<Id<ChannelMarker>> {
 		self.new_partner_ticket_channel
-			.map(|database_id| ChannelId::new(discord_id_from_database_id(database_id)))
+			.map(|database_id| Id::new(discord_id_from_database_id(database_id)))
 	}
 
 	/// Gets the channel to which existing partnership tickets are sent.
 	/// If the feature is disabled, no channel will be returned.
 	///
 	/// For the raw database representation, use [Self::existing_partner_ticket_channel].
-	pub fn get_existing_partner_ticket_channel(&self) -> Option<ChannelId> {
+	pub fn get_existing_partner_ticket_channel(&self) -> Option<Id<ChannelMarker>> {
 		self.existing_partner_ticket_channel
-			.map(|database_id| ChannelId::new(discord_id_from_database_id(database_id)))
+			.map(|database_id| Id::new(discord_id_from_database_id(database_id)))
 	}
 
 	/// Gets the channel to which message report tickets are sent.
 	/// If the feature is disabled, no channel will be returned.
 	///
 	/// For the raw database representation, use [Self::message_reports_channel].
-	pub fn get_message_reports_channel(&self) -> Option<ChannelId> {
+	pub fn get_message_reports_channel(&self) -> Option<Id<ChannelMarker>> {
 		self.message_reports_channel
-			.map(|database_id| ChannelId::new(discord_id_from_database_id(database_id)))
+			.map(|database_id| Id::new(discord_id_from_database_id(database_id)))
 	}
 
 	/// Gets the role that administrators have.
 	///
 	/// For the raw database representation, use [Self::admin_role].
-	pub fn get_admin_role(&self) -> RoleId {
-		RoleId::new(discord_id_from_database_id(self.admin_role))
+	pub fn get_admin_role(&self) -> Id<RoleMarker> {
+		Id::new(discord_id_from_database_id(self.admin_role))
 	}
 
 	/// Gets the role that all staff have.
 	///
 	/// For the raw database representation, use [Self::staff_role].
-	pub fn get_staff_role(&self) -> RoleId {
-		RoleId::new(discord_id_from_database_id(self.staff_role))
+	pub fn get_staff_role(&self) -> Id<RoleMarker> {
+		Id::new(discord_id_from_database_id(self.staff_role))
 	}
 
 	/// Gets the channel in which the bot complains about moderator action reasons.
 	/// If the feature is disabled, no channel will be returned.
 	///
 	/// For the raw database representation, use [Self::action_reason_complain_channel].
-	pub fn get_action_reason_complain_channel(&self) -> Option<ChannelId> {
+	pub fn get_action_reason_complain_channel(&self) -> Option<Id<ChannelMarker>> {
 		self.action_reason_complain_channel
-			.map(|database_id| ChannelId::new(discord_id_from_database_id(database_id)))
+			.map(|database_id| Id::new(discord_id_from_database_id(database_id)))
 	}
 }
 
@@ -170,8 +185,8 @@ impl Form {
 	/// Gets the guild that owns the form.
 	///
 	/// For the raw database representation, use [Self::guild].
-	pub fn get_guild(&self) -> GuildId {
-		GuildId::new(discord_id_from_database_id(self.guild))
+	pub fn get_guild(&self) -> Id<GuildMarker> {
+		Id::new(discord_id_from_database_id(self.guild))
 	}
 }
 
@@ -212,15 +227,15 @@ impl CustomCategory {
 	/// Gets the guild for which the category was created.
 	///
 	/// For the raw database representation, use [Self::guild].
-	pub fn get_build(&self) -> GuildId {
-		GuildId::new(discord_id_from_database_id(self.guild))
+	pub fn get_build(&self) -> Id<GuildMarker> {
+		Id::new(discord_id_from_database_id(self.guild))
 	}
 
 	/// Gets the channel to which tickets in this category are posted.
 	///
 	/// For the raw database representation, use [Self::channel].
-	pub fn get_channel(&self) -> ChannelId {
-		ChannelId::new(discord_id_from_database_id(self.channel))
+	pub fn get_channel(&self) -> Id<ChannelMarker> {
+		Id::new(discord_id_from_database_id(self.channel))
 	}
 }
 
@@ -249,15 +264,15 @@ impl Ticket {
 	/// The guild the ticket is with.
 	///
 	/// For the raw database representation, use [Self::guild].
-	pub fn get_guild(&self) -> GuildId {
-		GuildId::new(discord_id_from_database_id(self.guild))
+	pub fn get_guild(&self) -> Id<GuildMarker> {
+		Id::new(discord_id_from_database_id(self.guild))
 	}
 
 	/// The user with whom staff is having the discussion.
 	///
 	/// To get a Discord-facing version of this more easily, use [Self::with_user].
-	pub fn get_with_user(&self) -> UserId {
-		UserId::new(discord_id_from_database_id(self.with_user))
+	pub fn get_with_user(&self) -> Id<UserMarker> {
+		Id::new(discord_id_from_database_id(self.with_user))
 	}
 }
 

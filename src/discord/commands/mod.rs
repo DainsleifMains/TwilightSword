@@ -4,19 +4,34 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-use serenity::builder::CreateCommand;
-use serenity::model::application::CommandInteraction;
-use serenity::prelude::*;
+use diesel::prelude::*;
+use diesel::r2d2::{ConnectionManager, Pool};
+use std::sync::Arc;
+use tokio::sync::RwLock;
+use twilight_http::client::Client;
+use twilight_model::application::command::Command;
+use twilight_model::application::interaction::application_command::CommandData;
+use twilight_model::gateway::payload::incoming::InteractionCreate;
+use twilight_model::id::marker::ApplicationMarker;
+use twilight_model::id::Id;
+use type_map::concurrent::TypeMap;
 
 mod setup;
 
-pub fn command_definitions() -> Vec<CreateCommand> {
+pub fn command_definitions() -> Vec<Command> {
 	vec![setup::command_definition()]
 }
 
-pub async fn route_command(ctx: Context, command: CommandInteraction) -> miette::Result<()> {
-	match command.data.name.as_str() {
-		"setup" => setup::execute(ctx, command).await,
+pub async fn route_command(
+	interaction: &InteractionCreate,
+	command_data: &CommandData,
+	http_client: Arc<Client>,
+	application_id: Id<ApplicationMarker>,
+	db_connection_pool: Pool<ConnectionManager<PgConnection>>,
+	bot_state: Arc<RwLock<TypeMap>>,
+) -> miette::Result<()> {
+	match command_data.name.as_str() {
+		"setup" => setup::handle_command(interaction, http_client, application_id, db_connection_pool, bot_state).await,
 		_ => unimplemented!(),
 	}
 }

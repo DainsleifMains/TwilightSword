@@ -4,8 +4,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-use miette::IntoDiagnostic;
-use serenity::prelude::*;
+use std::sync::Arc;
 
 mod config;
 mod database;
@@ -13,7 +12,8 @@ mod discord;
 mod model;
 mod schema;
 
-use database::{connect_db, run_embedded_migrations, DatabaseConnection};
+use database::{connect_db, run_embedded_migrations};
+use discord::run_bot;
 
 #[tokio::main]
 async fn main() -> miette::Result<()> {
@@ -21,13 +21,9 @@ async fn main() -> miette::Result<()> {
 	let db_connection_pool = connect_db(&config)?;
 	run_embedded_migrations(&db_connection_pool)?;
 
-	let intents = GatewayIntents::empty();
-	let client_builder = Client::builder(&config.discord_token, intents)
-		.event_handler(discord::Handler)
-		.type_map_insert::<DatabaseConnection>(db_connection_pool);
-	let mut client = client_builder.await.into_diagnostic()?;
+	let config = Arc::new(config);
 
-	client.start().await.into_diagnostic()?;
+	run_bot(db_connection_pool.clone(), Arc::clone(&config)).await?;
 
 	Ok(())
 }

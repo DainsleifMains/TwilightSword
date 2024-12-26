@@ -9,6 +9,13 @@ diesel-derive-enum = { version = "2.1.0", features = ["postgres"] }
 diesel_migrations = "2.2.0"
 knus = "3.2.0"
 miette = { version = "5.10.0", features = ["fancy"] }
+tracing = "0.1.41"
+twilight-cache-inmemory = "0.16.0-rc.1"
+twilight-gateway = "0.16.0-rc.1"
+twilight-http = "0.16.0-rc.1"
+twilight-model = "0.16.0-rc.1"
+twilight-util = { version = "0.16.0-rc.1", features = ["builder"] }
+type-map = "0.5.0"
 
 [dependencies.diesel]
 version = "2.2.6"
@@ -17,21 +24,12 @@ features = [
 	"r2d2"
 ]
 
-[dependencies.serenity]
-version = "0.12.4"
-features = [
-	"builder",
-	"cache",
-	"client",
-	"collector",
-	"model",
-	"rustls_backend"
-]
-
 [dependencies.tokio]
 version = "1.42.0"
 features = [
 	"fs",
 	"macros",
-	"rt-multi-thread"
+	"rt-multi-thread",
+	"sync",
+	"time"
 ]

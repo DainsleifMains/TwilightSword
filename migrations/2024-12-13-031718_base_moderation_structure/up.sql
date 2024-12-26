@@ -4,10 +4,14 @@
 -- License, v. 2.0. If a copy of the MPL was not distributed with this
 -- file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+CREATE DOMAIN discord_id AS BIGINT CONSTRAINT non_zero CHECK (VALUE != 0);
+
 CREATE TABLE guilds (
 	guild_id BIGINT PRIMARY KEY,
 	start_ticket_channel BIGINT,
 	start_ticket_message TEXT NOT NULL,
+	start_ticket_interaction BIGINT,
+	start_ticket_token TEXT,
 	ban_appeal_ticket_channel BIGINT,
 	new_partner_ticket_channel BIGINT,
 	existing_partner_ticket_channel BIGINT,

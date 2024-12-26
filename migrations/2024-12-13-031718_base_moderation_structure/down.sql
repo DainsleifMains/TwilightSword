@@ -14,3 +14,4 @@ DROP TABLE form_questions;
 DROP TABLE forms;
 DROP TYPE built_in_ticket_category;
 DROP TABLE guilds;
+DROP DOMAIN discord_id;
