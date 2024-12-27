@@ -6,37 +6,47 @@
 
 use diesel::prelude::*;
 use diesel::r2d2::{ConnectionManager, Pool};
+use miette::bail;
 use std::sync::Arc;
-use tokio::sync::RwLock;
 use twilight_http::client::Client;
-use twilight_model::application::command::Command;
+use twilight_model::application::command::{Command, CommandType};
 use twilight_model::application::interaction::application_command::CommandData;
 use twilight_model::gateway::payload::incoming::InteractionCreate;
+use twilight_model::guild::Permissions;
 use twilight_model::id::marker::ApplicationMarker;
 use twilight_model::id::Id;
-use type_map::concurrent::TypeMap;
+use twilight_util::builder::command::CommandBuilder;
 
-mod settings;
-mod setup;
+mod admin_role;
 
-pub fn command_definitions() -> Vec<Command> {
-	vec![setup::command_definition(), settings::command_definition()]
+pub fn command_definition() -> Command {
+	CommandBuilder::new(
+		"settings",
+		"View or modify settings for your server",
+		CommandType::ChatInput,
+	)
+	.dm_permission(false)
+	.default_member_permissions(Permissions::MANAGE_GUILD)
+	.option(admin_role::subcommand_definition())
+	.build()
 }
 
-pub async fn route_command(
+pub async fn handle_command(
 	interaction: &InteractionCreate,
 	command_data: &CommandData,
 	http_client: Arc<Client>,
 	application_id: Id<ApplicationMarker>,
 	db_connection_pool: Pool<ConnectionManager<PgConnection>>,
-	bot_state: Arc<RwLock<TypeMap>>,
 ) -> miette::Result<()> {
-	match command_data.name.as_str() {
-		"setup" => setup::handle_command(interaction, http_client, application_id, db_connection_pool, bot_state).await,
-		"settings" => {
-			settings::handle_command(
+	let Some(subcommand_data) = command_data.options.first() else {
+		bail!("Settings command invoked with no subcommand");
+	};
+
+	match subcommand_data.name.as_str() {
+		"admin_role" => {
+			admin_role::handle_subcommand(
 				interaction,
-				command_data,
+				&subcommand_data.value,
 				http_client,
 				application_id,
 				db_connection_pool,

@@ -1,3 +1,9 @@
+// © 2024 ElementalAlchemist and the Dainsleif Mains Development Team
+//
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
 use crate::discord::state::setup::{set_up_components, SetupState};
 use crate::model::{database_id_from_discord_id, Guild};
 use crate::schema::guilds;
