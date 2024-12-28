@@ -18,6 +18,7 @@ use twilight_model::id::Id;
 use twilight_util::builder::command::CommandBuilder;
 
 mod admin_role;
+mod staff_role;
 
 pub fn command_definition() -> Command {
 	CommandBuilder::new(
@@ -28,6 +29,7 @@ pub fn command_definition() -> Command {
 	.dm_permission(false)
 	.default_member_permissions(Permissions::MANAGE_GUILD)
 	.option(admin_role::subcommand_definition())
+	.option(staff_role::subcommand_definition())
 	.build()
 }
 
@@ -45,6 +47,16 @@ pub async fn handle_command(
 	match subcommand_data.name.as_str() {
 		"admin_role" => {
 			admin_role::handle_subcommand(
+				interaction,
+				&subcommand_data.value,
+				http_client,
+				application_id,
+				db_connection_pool,
+			)
+			.await
+		}
+		"staff_role" => {
+			staff_role::handle_subcommand(
 				interaction,
 				&subcommand_data.value,
 				http_client,

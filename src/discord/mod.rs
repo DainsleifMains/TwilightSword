@@ -7,6 +7,7 @@
 mod commands;
 mod connection;
 mod interactions;
+mod responses;
 mod state;
 
 pub use connection::run_bot;
