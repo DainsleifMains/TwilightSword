@@ -107,7 +107,7 @@ async fn expire_setup(
 	bot_state: Arc<RwLock<TypeMap>>,
 	setup_id: String,
 ) {
-	sleep(Duration::from_secs(3600)).await;
+	sleep(Duration::from_secs(890)).await;
 	let mut state = bot_state.write().await;
 	let Some(set_up_state) = state.get_mut::<SetupState>() else {
 		return;
