@@ -4,7 +4,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-use crate::config::ConfigDocument;
+use crate::config::ConfigData;
 use diesel::prelude::*;
 use diesel::r2d2::{ConnectionManager, Pool};
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
@@ -30,13 +30,13 @@ impl Error for MigrationError {
 	}
 }
 
-pub fn connect_db(config: &ConfigDocument) -> miette::Result<Pool<ConnectionManager<PgConnection>>> {
+pub fn connect_db(config: &ConfigData) -> miette::Result<Pool<ConnectionManager<PgConnection>>> {
 	let url = db_url(config);
 	let manager: ConnectionManager<PgConnection> = ConnectionManager::new(url);
 	Pool::builder().test_on_check_out(true).build(manager).into_diagnostic()
 }
 
-fn db_url(config: &ConfigDocument) -> String {
+fn db_url(config: &ConfigData) -> String {
 	let db_config = &config.database;
 	match db_config.port {
 		Some(port) => format!(

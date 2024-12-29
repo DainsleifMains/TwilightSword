@@ -6,7 +6,7 @@
 
 use super::commands::{command_definitions, route_command};
 use super::interactions::route_interaction;
-use crate::config::ConfigDocument;
+use crate::config::ConfigData;
 use diesel::prelude::*;
 use diesel::r2d2::{ConnectionManager, Pool};
 use miette::IntoDiagnostic;
@@ -23,7 +23,7 @@ use type_map::concurrent::TypeMap;
 
 pub async fn run_bot(
 	db_connection_pool: Pool<ConnectionManager<PgConnection>>,
-	config: Arc<ConfigDocument>,
+	config: Arc<ConfigData>,
 ) -> miette::Result<()> {
 	let intents = Intents::empty();
 
