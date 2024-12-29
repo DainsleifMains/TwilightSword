@@ -17,6 +17,8 @@ use discord::run_bot;
 
 #[tokio::main]
 async fn main() -> miette::Result<()> {
+	tracing_subscriber::fmt::init();
+
 	let config = config::parse_config("config.kdl").await?;
 	let db_connection_pool = connect_db(&config)?;
 	run_embedded_migrations(&db_connection_pool)?;
