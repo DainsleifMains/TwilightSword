@@ -7,7 +7,7 @@
 use crate::schema::{custom_categories, form_questions, forms, guilds, tickets};
 use diesel::prelude::*;
 use diesel_derive_enum::DbEnum;
-use twilight_model::id::marker::{ChannelMarker, GuildMarker, InteractionMarker, RoleMarker, UserMarker};
+use twilight_model::id::marker::{ChannelMarker, GuildMarker, MessageMarker, RoleMarker, UserMarker};
 use twilight_model::id::Id;
 
 #[derive(DbEnum, Debug)]
@@ -33,12 +33,10 @@ pub struct Guild {
 	pub start_ticket_channel: Option<i64>,
 	/// The message used in the "open a ticket" channel.
 	pub start_ticket_message: String,
-	/// The interaction ID of the active message posted by the bot for starting a ticket.
+	/// The message ID of the active message posted by the bot for starting a ticket.
 	///
-	/// To get a Discord-facing version of this more easily, use [Self::get_start_ticket_interaction].
-	pub start_ticket_interaction: Option<i64>,
-	/// The token used with the Discord API for updating the start ticket message.
-	pub start_ticket_token: Option<String>,
+	/// To get a Discord-facing version of this more easily, use [Self::get_start_ticket_message_id].
+	pub start_ticket_message_id: Option<i64>,
 	/// The ID of the channel to which ban appeal tickets are sent.
 	/// If the feature is disabled, no ID will be entered.
 	///
@@ -99,11 +97,11 @@ impl Guild {
 			.map(|database_id| Id::new(discord_id_from_database_id(database_id)))
 	}
 
-	/// If a message is posted to the start ticket channel, the interaction ID of that message.
+	/// If a message is posted to the start ticket channel, the message ID of that message.
 	///
 	/// For the raw database representation, use [Self::start_ticket_integration].
-	pub fn get_start_ticket_interaction(&self) -> Option<Id<InteractionMarker>> {
-		self.start_ticket_interaction
+	pub fn get_start_ticket_message_id(&self) -> Option<Id<MessageMarker>> {
+		self.start_ticket_message_id
 			.map(|database_id| Id::new(discord_id_from_database_id(database_id)))
 	}
 

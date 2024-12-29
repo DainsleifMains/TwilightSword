@@ -4,6 +4,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+use crate::discord::interactions::MAX_INTERACTION_WAIT_TIME;
 use crate::discord::state::setup::{set_up_components, SetupInstance, SetupState};
 use crate::model::{database_id_from_discord_id, Guild as DbGuild};
 use crate::schema::guilds;
@@ -11,7 +12,6 @@ use diesel::prelude::*;
 use diesel::r2d2::{ConnectionManager, Pool};
 use miette::{bail, IntoDiagnostic};
 use std::sync::Arc;
-use std::time::Duration;
 use tokio::sync::RwLock;
 use tokio::time::sleep;
 use twilight_http::client::Client;
@@ -107,7 +107,7 @@ async fn expire_setup(
 	bot_state: Arc<RwLock<TypeMap>>,
 	setup_id: String,
 ) {
-	sleep(Duration::from_secs(890)).await;
+	sleep(MAX_INTERACTION_WAIT_TIME).await;
 	let mut state = bot_state.write().await;
 	let Some(set_up_state) = state.get_mut::<SetupState>() else {
 		return;

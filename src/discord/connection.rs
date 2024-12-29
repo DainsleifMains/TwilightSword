@@ -79,6 +79,19 @@ async fn handle_event(
 	application_id: Id<ApplicationMarker>,
 	db_connection_pool: Pool<ConnectionManager<PgConnection>>,
 	bot_state: Arc<RwLock<TypeMap>>,
+) {
+	let event_result = handle_event_route(event, http_client, application_id, db_connection_pool, bot_state).await;
+	if let Err(error) = event_result {
+		tracing::error!(source = ?error, "An error occurred handling a gateway event");
+	}
+}
+
+async fn handle_event_route(
+	event: Event,
+	http_client: Arc<Client>,
+	application_id: Id<ApplicationMarker>,
+	db_connection_pool: Pool<ConnectionManager<PgConnection>>,
+	bot_state: Arc<RwLock<TypeMap>>,
 ) -> miette::Result<()> {
 	match event {
 		Event::InteractionCreate(interaction) => match &interaction.data {
