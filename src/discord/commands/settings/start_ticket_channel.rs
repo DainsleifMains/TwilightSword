@@ -119,7 +119,11 @@ pub async fn handle_subcommand(
 			.await
 		}
 		"unset" => unset_ticket_channel(interaction, &guild, http_client, application_id, &mut db_connection).await,
-		_ => unimplemented!(),
+		_ => bail!(
+			"Unknown settings start_ticket_channel subcommand encountered: {}\n{:?}",
+			value.name,
+			subcommand_value
+		),
 	}
 }
 

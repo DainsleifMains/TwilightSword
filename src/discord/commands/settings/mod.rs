@@ -92,6 +92,10 @@ pub async fn handle_command(
 			)
 			.await
 		}
-		_ => unimplemented!(),
+		_ => bail!(
+			"Unknown settings subcommand encountered: {}\n{:?}",
+			subcommand_data.name,
+			subcommand_data
+		),
 	}
 }

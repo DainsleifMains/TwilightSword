@@ -6,6 +6,7 @@
 
 use diesel::prelude::*;
 use diesel::r2d2::{ConnectionManager, Pool};
+use miette::bail;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use twilight_http::client::Client;
@@ -41,6 +42,10 @@ pub async fn route_settings_modal(
 			)
 			.await
 		}
-		_ => unimplemented!(),
+		_ => bail!(
+			"Unexpected settings modal response encountered: {}\n{:?}",
+			modal_data.custom_id,
+			modal_data
+		),
 	}
 }

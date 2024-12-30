@@ -109,7 +109,11 @@ pub async fn handle_subcommand(
 			)
 			.await
 		}
-		_ => unimplemented!(),
+		_ => bail!(
+			"Unknown settings admin_role subcommand encountered: {}\n{:?}",
+			value.name,
+			subcommand_value
+		),
 	}
 }
 

@@ -6,6 +6,7 @@
 
 use diesel::prelude::*;
 use diesel::r2d2::{ConnectionManager, Pool};
+use miette::bail;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use twilight_http::client::Client;
@@ -44,6 +45,6 @@ pub async fn route_command(
 			)
 			.await
 		}
-		_ => unimplemented!(),
+		_ => bail!("Unknown command encoutered: {}\n{:?}", command_data.name, command_data),
 	}
 }

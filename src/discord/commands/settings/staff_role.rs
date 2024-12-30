@@ -106,7 +106,11 @@ pub async fn handle_subcommand(
 			)
 			.await
 		}
-		_ => unimplemented!(),
+		_ => bail!(
+			"Unknown settings staff_role command encountered: {}\n{:?}",
+			value.name,
+			subcommand_value
+		),
 	}
 }
 

@@ -69,7 +69,11 @@ pub async fn route_setup_interaction(
 			.await
 		}
 		Some("cancel") => handle_cancel(interaction, setup_id, http_client, application_id, bot_state).await,
-		_ => unimplemented!(),
+		_ => bail!(
+			"Unexpected setup interaction encountered: {}\n{:?}",
+			interaction_data.custom_id,
+			interaction_data
+		),
 	}
 }
 

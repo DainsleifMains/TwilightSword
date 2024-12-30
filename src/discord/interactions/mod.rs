@@ -6,6 +6,7 @@
 
 use diesel::prelude::*;
 use diesel::r2d2::{ConnectionManager, Pool};
+use miette::bail;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::RwLock;
@@ -45,7 +46,11 @@ pub async fn route_interaction(
 			)
 			.await
 		}
-		_ => unimplemented!(),
+		_ => bail!(
+			"Unexpected interaction encountered: {}\n{:?}",
+			interaction_data.custom_id,
+			interaction_data
+		),
 	}
 }
 
@@ -72,6 +77,10 @@ pub async fn route_modal_submit(
 			)
 			.await
 		}
-		_ => unimplemented!(),
+		_ => bail!(
+			"Unexpected modal response encountered: {}\n{:?}",
+			modal_data.custom_id,
+			modal_data
+		),
 	}
 }
