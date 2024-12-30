@@ -5,7 +5,7 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use super::commands::{command_definitions, route_command};
-use super::interactions::route_interaction;
+use super::interactions::{route_interaction, route_modal_submit};
 use crate::config::ConfigData;
 use diesel::prelude::*;
 use diesel::r2d2::{ConnectionManager, Pool};
@@ -116,6 +116,17 @@ async fn handle_event_route(
 					bot_state,
 				)
 				.await?;
+			}
+			Some(InteractionData::ModalSubmit(modal_data)) => {
+				route_modal_submit(
+					&interaction,
+					modal_data,
+					http_client,
+					application_id,
+					db_connection_pool,
+					bot_state,
+				)
+				.await?
 			}
 			_ => (),
 		},

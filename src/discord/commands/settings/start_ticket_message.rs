@@ -87,11 +87,10 @@ pub async fn handle_subcommand(
 	};
 
 	let prompt_id = cuid2::create_id();
-	let text_input_id = format!("settings/start_ticket_message/{}/text", prompt_id);
 	let modal_id = format!("settings/start_ticket_message/{}/modal", prompt_id);
 
 	let text_input = Component::TextInput(TextInput {
-		custom_id: text_input_id,
+		custom_id: String::from("message"),
 		label: String::from("Message contents"),
 		max_length: None,
 		min_length: None,

@@ -8,6 +8,7 @@ mod commands;
 mod connection;
 mod interactions;
 mod responses;
+mod shared_components;
 mod state;
 
 pub use connection::run_bot;

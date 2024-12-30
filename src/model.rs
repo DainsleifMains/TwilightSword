@@ -280,6 +280,6 @@ pub fn database_id_from_discord_id(discord_id: u64) -> i64 {
 }
 
 /// Converts an ID retrieved from the database (signed) to an ID for use with Discord (unsigned)
-pub fn discord_id_from_database_id(database_id: i64) -> u64 {
+fn discord_id_from_database_id(database_id: i64) -> u64 {
 	database_id as u64
 }

@@ -25,7 +25,7 @@ use type_map::concurrent::TypeMap;
 pub async fn route_setup_interaction(
 	interaction: &InteractionCreate,
 	interaction_data: &MessageComponentInteractionData,
-	custom_id_path: Vec<String>,
+	custom_id_path: &[String],
 	http_client: Arc<Client>,
 	application_id: Id<ApplicationMarker>,
 	db_connection_pool: Pool<ConnectionManager<PgConnection>>,
