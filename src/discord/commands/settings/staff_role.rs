@@ -102,7 +102,7 @@ pub async fn handle_subcommand(
 				&value.value,
 				http_client,
 				application_id,
-				db_connection_pool,
+				&mut db_connection,
 			)
 			.await
 		}
@@ -141,7 +141,7 @@ async fn set_staff_role(
 	subcommand_value: &CommandOptionValue,
 	http_client: Arc<Client>,
 	application_id: Id<ApplicationMarker>,
-	db_connection_pool: Pool<ConnectionManager<PgConnection>>,
+	db_connection: &mut PgConnection,
 ) -> miette::Result<()> {
 	let CommandOptionValue::SubCommand(values) = subcommand_value else {
 		bail!("Command data is malformed; expected `/settings staff_role set` to get subcommand data");
@@ -160,11 +160,10 @@ async fn set_staff_role(
 
 	let db_role_id = database_id_from_discord_id(new_staff_role.get());
 
-	let mut db_connection = db_connection_pool.get().into_diagnostic()?;
 	let db_result = diesel::update(guilds::table)
 		.filter(guilds::guild_id.eq(guild.guild_id))
 		.set(guilds::staff_role.eq(db_role_id))
-		.execute(&mut db_connection);
+		.execute(db_connection);
 	let interaction_client = http_client.interaction(application_id);
 	match db_result {
 		Ok(_) => {
@@ -185,6 +184,7 @@ async fn set_staff_role(
 			tracing::error!(source = ?error, "Failed to update the admin role for a server");
 			let response = InteractionResponseDataBuilder::new()
 				.content("An internal error caused the update to fail.")
+				.flags(MessageFlags::EPHEMERAL)
 				.build();
 			let response = InteractionResponse {
 				kind: InteractionResponseType::ChannelMessageWithSource,

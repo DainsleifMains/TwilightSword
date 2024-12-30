@@ -21,6 +21,7 @@ use type_map::concurrent::TypeMap;
 
 mod admin_role;
 mod staff_role;
+mod start_ticket_channel;
 mod start_ticket_message;
 
 pub fn command_definition() -> Command {
@@ -33,6 +34,7 @@ pub fn command_definition() -> Command {
 	.default_member_permissions(Permissions::MANAGE_GUILD)
 	.option(admin_role::subcommand_definition())
 	.option(staff_role::subcommand_definition())
+	.option(start_ticket_channel::subcommand_definition())
 	.option(start_ticket_message::subcommand_definition())
 	.build()
 }
@@ -62,6 +64,16 @@ pub async fn handle_command(
 		}
 		"staff_role" => {
 			staff_role::handle_subcommand(
+				interaction,
+				&subcommand_data.value,
+				http_client,
+				application_id,
+				db_connection_pool,
+			)
+			.await
+		}
+		"start_ticket_channel" => {
+			start_ticket_channel::handle_subcommand(
 				interaction,
 				&subcommand_data.value,
 				http_client,
