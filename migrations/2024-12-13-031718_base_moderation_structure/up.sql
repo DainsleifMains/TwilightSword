@@ -7,18 +7,18 @@
 CREATE DOMAIN discord_id AS BIGINT CONSTRAINT non_zero CHECK (VALUE != 0);
 
 CREATE TABLE guilds (
-	guild_id BIGINT PRIMARY KEY,
-	start_ticket_channel BIGINT,
+	guild_id discord_id PRIMARY KEY,
+	start_ticket_channel discord_id,
 	start_ticket_message TEXT NOT NULL,
-	start_ticket_message_id BIGINT,
-	ban_appeal_ticket_channel BIGINT,
-	new_partner_ticket_channel BIGINT,
-	existing_partner_ticket_channel BIGINT,
-	message_reports_channel BIGINT,
+	start_ticket_message_id discord_id,
+	ban_appeal_ticket_channel discord_id,
+	new_partner_ticket_channel discord_id,
+	existing_partner_ticket_channel discord_id,
+	message_reports_channel discord_id,
 	tcn_partner_integration BOOLEAN NOT NULL,
-	admin_role BIGINT NOT NULL,
-	staff_role BIGINT NOT NULL,
-	action_reason_complain_channel BIGINT
+	admin_role discord_id NOT NULL,
+	staff_role discord_id NOT NULL,
+	action_reason_complain_channel discord_id
 );
 
 CREATE TYPE built_in_ticket_category AS ENUM (
@@ -30,7 +30,7 @@ CREATE TYPE built_in_ticket_category AS ENUM (
 
 CREATE TABLE forms (
 	id TEXT PRIMARY KEY,
-	guild BIGINT NOT NULL REFERENCES guilds,
+	guild discord_id NOT NULL REFERENCES guilds,
 	title TEXT NOT NULL
 );
 
@@ -48,17 +48,17 @@ CREATE TABLE form_questions (
 
 CREATE TABLE custom_categories (
 	id TEXT PRIMARY KEY,
-	guild BIGINT NOT NULL REFERENCES guilds,
+	guild discord_id NOT NULL REFERENCES guilds,
 	name TEXT NOT NULL,
-	channel BIGINT NOT NULL,
+	channel discord_id NOT NULL,
 	form TEXT REFERENCES forms,
 	CONSTRAINT unique_name_for_guild UNIQUE (guild, name)
 );
 
 CREATE TABLE tickets (
 	id TEXT PRIMARY KEY,
-	guild BIGINT NOT NULL REFERENCES guilds,
-	with_user BIGINT NOT NULL,
+	guild discord_id NOT NULL REFERENCES guilds,
+	with_user discord_id NOT NULL,
 	title TEXT NOT NULL,
 	built_in_category built_in_ticket_category,
 	custom_category TEXT REFERENCES custom_categories,
