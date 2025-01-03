@@ -72,7 +72,7 @@ pub async fn handle_command(
 
 	let setup_id = cuid2::create_id();
 
-	let message_content = "In order to set up Twilight Sword, we only require a couple pieces of information (but they are required!).\nPlease specify the role given to administrators and the role given to all staff members. (You can change these later (for example, if you change your server's role setup).)";
+	let message_content = "In order to set up Twilight Sword, we only require a couple pieces of information (but they are required!).\nPlease specify the role given to administrators and the role given to all staff members. (You can change these later (for example, if you change your server's role setup).)\nThese settings are used to help determine who has permissions for various bot-related functionality.";
 	let components = set_up_components(&setup_id, true);
 	let message = InteractionResponseDataBuilder::new()
 		.content(message_content)
