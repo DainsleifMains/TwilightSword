@@ -20,6 +20,7 @@ use twilight_util::builder::command::CommandBuilder;
 use type_map::concurrent::TypeMap;
 
 mod admin_role;
+mod ban_appeal_ticket_channel;
 mod staff_role;
 mod start_ticket_channel;
 mod start_ticket_message;
@@ -33,6 +34,7 @@ pub fn command_definition() -> Command {
 	.dm_permission(false)
 	.default_member_permissions(Permissions::MANAGE_GUILD)
 	.option(admin_role::subcommand_definition())
+	.option(ban_appeal_ticket_channel::subcommand_definition())
 	.option(staff_role::subcommand_definition())
 	.option(start_ticket_channel::subcommand_definition())
 	.option(start_ticket_message::subcommand_definition())
@@ -54,6 +56,16 @@ pub async fn handle_command(
 	match subcommand_data.name.as_str() {
 		"admin_role" => {
 			admin_role::handle_subcommand(
+				interaction,
+				&subcommand_data.value,
+				http_client,
+				application_id,
+				db_connection_pool,
+			)
+			.await
+		}
+		"ban_appeal_ticket_channel" => {
+			ban_appeal_ticket_channel::handle_subcommand(
 				interaction,
 				&subcommand_data.value,
 				http_client,
