@@ -98,7 +98,7 @@ pub async fn handle_subcommand(
 
 	let CommandOptionValue::SubCommandGroup(value_data) = subcommand_value else {
 		bail!(
-			"Command data is malformed; expected `/settings ban_appeal_ticket_channel to get a subcommand group value"
+			"Command data is malformed; expected `/settings ban_appeal_ticket_channel` to get a subcommand group value"
 		);
 	};
 	let Some(value) = value_data.first() else {
@@ -119,7 +119,7 @@ pub async fn handle_subcommand(
 		}
 		"unset" => unset_ticket_channel(interaction, &guild, http_client, application_id, &mut db_connection).await,
 		_ => bail!(
-			"Unknown settings ban_appeal_ticket_channel subcomand encountered: {}\n{:?}",
+			"Unknown settings ban_appeal_ticket_channel subcommand encountered: {}\n{:?}",
 			value.name,
 			subcommand_value
 		),
