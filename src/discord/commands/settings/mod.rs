@@ -21,6 +21,7 @@ use type_map::concurrent::TypeMap;
 
 mod admin_role;
 mod ban_appeal_ticket_channel;
+mod new_partner_ticket_channel;
 mod staff_role;
 mod start_ticket_channel;
 mod start_ticket_message;
@@ -35,6 +36,7 @@ pub fn command_definition() -> Command {
 	.default_member_permissions(Permissions::MANAGE_GUILD)
 	.option(admin_role::subcommand_definition())
 	.option(ban_appeal_ticket_channel::subcommand_definition())
+	.option(new_partner_ticket_channel::subcommand_definition())
 	.option(staff_role::subcommand_definition())
 	.option(start_ticket_channel::subcommand_definition())
 	.option(start_ticket_message::subcommand_definition())
@@ -66,6 +68,16 @@ pub async fn handle_command(
 		}
 		"ban_appeal_ticket_channel" => {
 			ban_appeal_ticket_channel::handle_subcommand(
+				interaction,
+				&subcommand_data.value,
+				http_client,
+				application_id,
+				db_connection_pool,
+			)
+			.await
+		}
+		"new_partner_ticket_channel" => {
+			new_partner_ticket_channel::handle_subcommand(
 				interaction,
 				&subcommand_data.value,
 				http_client,
