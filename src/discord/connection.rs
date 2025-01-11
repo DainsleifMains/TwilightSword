@@ -5,6 +5,7 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use super::commands::{command_definitions, route_command};
+use super::events::route_events;
 use super::interactions::{route_interaction, route_modal_submit};
 use crate::config::ConfigData;
 use diesel::prelude::*;
@@ -25,7 +26,7 @@ pub async fn run_bot(
 	db_connection_pool: Pool<ConnectionManager<PgConnection>>,
 	config: Arc<ConfigData>,
 ) -> miette::Result<()> {
-	let intents = Intents::empty();
+	let intents = Intents::GUILD_MODERATION | Intents::GUILD_MESSAGES | Intents::MESSAGE_CONTENT;
 
 	let mut shard = Shard::new(ShardId::ONE, config.discord_token.clone(), intents);
 
@@ -130,6 +131,9 @@ async fn handle_event_route(
 			}
 			_ => (),
 		},
+		Event::GuildAuditLogEntryCreate(event_audit_data) => {
+			route_events(&event_audit_data.0, http_client, db_connection_pool).await?
+		}
 		Event::Ready(_) => {
 			tracing::debug!("Gateway is ready");
 		}

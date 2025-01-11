@@ -6,6 +6,7 @@
 
 mod commands;
 mod connection;
+mod events;
 mod interactions;
 mod responses;
 mod shared_components;

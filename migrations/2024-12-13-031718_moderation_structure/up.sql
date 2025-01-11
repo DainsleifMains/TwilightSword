@@ -64,3 +64,56 @@ CREATE TABLE tickets (
 	custom_category TEXT REFERENCES custom_categories,
 	CONSTRAINT has_category CHECK(built_in_category IS NOT NULL OR custom_category IS NOT NULL)
 );
+
+CREATE TYPE automod_action_type AS ENUM (
+	'block',
+	'disable_communication'
+);
+
+CREATE TABLE automod_actions (
+	id TEXT PRIMARY KEY,
+	guild discord_id NOT NULL REFERENCES guilds,
+	target_user discord_id NOT NULL,
+	action_type automod_action_type NOT NULL,
+	action_time TIMESTAMP WITH TIME ZONE NOT NULL,
+	reason TEXT NOT NULL,
+	rule_name TEXT NOT NULL,
+	message_content TEXT NOT NULL
+);
+
+CREATE INDEX automod_target_user_by_guild ON automod_actions (guild, target_user);
+
+CREATE TABLE ban_actions (
+	id TEXT PRIMARY KEY,
+	guild discord_id NOT NULL REFERENCES guilds,
+	banning_user discord_id NOT NULL,
+	banned_user discord_id NOT NULL,
+	added BOOLEAN NOT NULL,
+	action_time TIMESTAMP WITH TIME ZONE NOT NULL,
+	reason TEXT NOT NULL
+);
+
+CREATE INDEX banned_user_by_guild ON ban_actions (guild, banned_user);
+
+CREATE TABLE kick_actions (
+	id TEXT PRIMARY KEY,
+	guild discord_id NOT NULL REFERENCES guilds,
+	kicking_user discord_id NOT NULL,
+	kicked_user discord_id NOT NULL,
+	action_time TIMESTAMP WITH TIME ZONE NOT NULL,
+	reason TEXT NOT NULL
+);
+
+CREATE INDEX kicked_user_by_guild ON kick_actions (guild, kicked_user);
+
+CREATE TABLE timeout_actions (
+	id TEXT PRIMARY KEY,
+	guild discord_id NOT NULL REFERENCES guilds,
+	performing_user discord_id NOT NULL,
+	target_user discord_id NOT NULL,
+	action_time TIMESTAMP WITH TIME ZONE NOT NULL,
+	timeout_until TIMESTAMP WITH TIME ZONE,
+	reason TEXT NOT NULL
+);
+
+CREATE INDEX timed_out_user_by_guild ON timeout_actions (guild, target_user);

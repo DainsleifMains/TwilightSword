@@ -4,7 +4,11 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-use crate::schema::{custom_categories, form_questions, forms, guilds, tickets};
+use crate::schema::{
+	automod_actions, ban_actions, custom_categories, form_questions, forms, guilds, kick_actions, tickets,
+	timeout_actions,
+};
+use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 use diesel_derive_enum::DbEnum;
 use twilight_model::id::marker::{ChannelMarker, GuildMarker, MessageMarker, RoleMarker, UserMarker};
@@ -17,6 +21,13 @@ pub enum BuiltInTicketCategory {
 	NewPartner,
 	ExistingPartner,
 	MessageReport,
+}
+
+#[derive(DbEnum, Debug)]
+#[ExistingTypePath = "crate::schema::sql_types::AutomodActionType"]
+pub enum AutomodActionType {
+	Block,
+	DisableCommunication,
 }
 
 /// Gets a guild that's using the bot and its various settings.
@@ -271,6 +282,187 @@ impl Ticket {
 	/// To get a Discord-facing version of this more easily, use [Self::with_user].
 	pub fn get_with_user(&self) -> Id<UserMarker> {
 		Id::new(discord_id_from_database_id(self.with_user))
+	}
+}
+
+/// The database representation of an action taken by automod
+#[derive(Insertable, Queryable)]
+pub struct AutomodAction {
+	/// Automod action's ID
+	pub id: String,
+	/// The ID of the guild in which the automod action took place.
+	///
+	/// To get a Discord-facing version of this more easily, use [Self::get_guild].
+	pub guild: i64,
+	/// The ID of the user on whom automod took action.
+	///
+	/// To get a Discord-facing version of this more easily, use [Self::get_target_user].
+	pub target_user: i64,
+	/// The type of action taken by automod.
+	pub action_type: AutomodActionType,
+	/// When the action took place
+	pub action_time: DateTime<Utc>,
+	/// The reason listed on the action
+	pub reason: String,
+	/// The name of the automod rule that was triggered
+	pub rule_name: String,
+}
+
+impl AutomodAction {
+	/// The guild in which the automod action occurred.
+	///
+	/// For the raw database representation, use [Self::guild].
+	pub fn get_guild(&self) -> Id<GuildMarker> {
+		Id::new(discord_id_from_database_id(self.guild))
+	}
+
+	/// The ID of the user on whom automod took action.
+	///
+	/// For the raw database representation, use [Self::target_user].
+	pub fn get_target_user(&self) -> Id<UserMarker> {
+		Id::new(discord_id_from_database_id(self.target_user))
+	}
+}
+
+/// The database representation of a ban or unban
+#[derive(Insertable, Queryable)]
+pub struct BanAction {
+	/// The ID of the ban
+	pub id: String,
+	/// The ID of the guild from which the user is banned.
+	///
+	/// To get a Discord-facing version of this more easily, use [Self::get_guild].
+	pub guild: i64,
+	/// The ID of the user who performed the ban.
+	///
+	/// To get a Discord-facing version of this more easily, use [Self::get_banning_user].
+	pub banning_user: i64,
+	/// The ID of the user who was banned.
+	///
+	/// To get a Discord-facing version of this more easily, use [Self::get_banned_user].
+	pub banned_user: i64,
+	/// Whether the ban is being added or removed.
+	pub added: bool,
+	/// When the ban or unban took place.
+	pub action_time: DateTime<Utc>,
+	/// The ban reason entered by the banning user
+	pub reason: String,
+}
+
+impl BanAction {
+	/// The ID of the guild from which the user is banned.
+	///
+	/// For the raw database representation, use [Self::guild].
+	pub fn get_guild(&self) -> Id<GuildMarker> {
+		Id::new(discord_id_from_database_id(self.guild))
+	}
+
+	/// The ID of the user who performed the ban.
+	///
+	/// For the raw database representation, use [Self::banning_user].
+	pub fn get_banning_user(&self) -> Id<UserMarker> {
+		Id::new(discord_id_from_database_id(self.banning_user))
+	}
+
+	/// The ID of the user who was banned.
+	///
+	/// For the raw database representation, use [Self::banned_user].
+	pub fn get_banned_user(&self) -> Id<UserMarker> {
+		Id::new(discord_id_from_database_id(self.banned_user))
+	}
+}
+
+/// The database representation of a kick action
+#[derive(Insertable, Queryable)]
+pub struct KickAction {
+	/// The ID of the kick
+	pub id: String,
+	/// The ID of the guild from which the user was kicked.
+	///
+	/// To get a Discord-facing version of this more easily, use [Self::get_guild].
+	pub guild: i64,
+	/// The ID of the user who performed the kick.
+	///
+	/// To get a Discord-facing version of this more easily, use [Self::get_kicking_user].
+	pub kicking_user: i64,
+	/// The ID of the user who was kicked.
+	///
+	/// To get a Discord-facing version of this more easily, use [Self::get_kicked_user].
+	pub kicked_user: i64,
+	/// When the kick occurred
+	pub action_time: DateTime<Utc>,
+	/// The kick reason entered by the kicking user
+	pub reason: String,
+}
+
+impl KickAction {
+	/// The ID of the guild from which the user was kicked.
+	///
+	/// For the raw database representation, use [Self::guild].
+	pub fn get_guild(&self) -> Id<GuildMarker> {
+		Id::new(discord_id_from_database_id(self.guild))
+	}
+
+	/// The ID of the user who performed the kick.
+	///
+	/// For the raw database representation, use [Self::kicking_user].
+	pub fn get_kicking_user(&self) -> Id<UserMarker> {
+		Id::new(discord_id_from_database_id(self.kicking_user))
+	}
+
+	/// The ID of the user who was kicked.
+	///
+	/// For the raw database representation, use [Self::kicked_user].
+	pub fn get_kicked_user(&self) -> Id<UserMarker> {
+		Id::new(discord_id_from_database_id(self.kicked_user))
+	}
+}
+
+/// The database representation of a timeout action
+#[derive(Insertable, Queryable)]
+pub struct TimeoutAction {
+	/// The ID of the timeout
+	pub id: String,
+	/// The ID of the guild in which the timeout occurred.
+	///
+	/// To get a Discord-facing version of this more easily, use [Self::get_guild].
+	pub guild: i64,
+	/// The ID of the user who performed the timeout.
+	///
+	/// To get a Discord-facing version of this more easily, use [Self::get_performing_user].
+	pub performing_user: i64,
+	/// The ID of the user who was timed out.
+	///
+	/// To get a Discord-facing version of this more easily, use [Self::get_target_user].
+	pub target_user: i64,
+	/// When the timeout occurred
+	pub action_time: DateTime<Utc>,
+	/// When the timeout expires. If null, an existing timeout on the user was removed.
+	pub timeout_until: Option<DateTime<Utc>>,
+	/// The timeout reason entered by the user
+	pub reason: String,
+}
+
+impl TimeoutAction {
+	/// The ID of the guild in which the timeout occurred.
+	///
+	/// For the raw database representation, use [Self::guild].
+	pub fn get_guild(&self) -> Id<GuildMarker> {
+		Id::new(discord_id_from_database_id(self.guild))
+	}
+
+	/// The ID of the user who performed the timeout.
+	///
+	/// For the raw database representation, use [Self::get_performing_user].
+	pub fn get_performing_user(&self) -> Id<UserMarker> {
+		Id::new(discord_id_from_database_id(self.performing_user))
+	}
+
+	/// The ID of the user who was timed out.
+	///
+	/// For the raw database representation, use [Self::get_target_user].
+	pub fn get_target_user(&self) -> Id<UserMarker> {
+		Id::new(discord_id_from_database_id(self.target_user))
 	}
 }
 

@@ -19,6 +19,7 @@ use twilight_model::id::Id;
 use twilight_util::builder::command::CommandBuilder;
 use type_map::concurrent::TypeMap;
 
+mod action_reason_complain_channel;
 mod admin_role;
 mod ban_appeal_ticket_channel;
 mod existing_partner_ticket_channel;
@@ -36,6 +37,7 @@ pub fn command_definition() -> Command {
 	)
 	.dm_permission(false)
 	.default_member_permissions(Permissions::MANAGE_GUILD)
+	.option(action_reason_complain_channel::subcommand_definition())
 	.option(admin_role::subcommand_definition())
 	.option(ban_appeal_ticket_channel::subcommand_definition())
 	.option(existing_partner_ticket_channel::subcommand_definition())
@@ -60,6 +62,16 @@ pub async fn handle_command(
 	};
 
 	match subcommand_data.name.as_str() {
+		"action_reason_complain_channel" => {
+			action_reason_complain_channel::handle_subcommand(
+				interaction,
+				&subcommand_data.value,
+				http_client,
+				application_id,
+				db_connection_pool,
+			)
+			.await
+		}
 		"admin_role" => {
 			admin_role::handle_subcommand(
 				interaction,

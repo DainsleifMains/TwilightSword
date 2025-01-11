@@ -2,8 +2,40 @@
 
 pub mod sql_types {
 	#[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
+	#[diesel(postgres_type(name = "automod_action_type"))]
+	pub struct AutomodActionType;
+
+	#[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
 	#[diesel(postgres_type(name = "built_in_ticket_category"))]
 	pub struct BuiltInTicketCategory;
+}
+
+diesel::table! {
+	use diesel::sql_types::*;
+	use super::sql_types::AutomodActionType;
+
+	automod_actions (id) {
+		id -> Text,
+		guild -> Int8,
+		target_user -> Int8,
+		action_type -> AutomodActionType,
+		action_time -> Timestamptz,
+		reason -> Text,
+		rule_name -> Text,
+		message_content -> Text,
+	}
+}
+
+diesel::table! {
+	ban_actions (id) {
+		id -> Text,
+		guild -> Int8,
+		banning_user -> Int8,
+		banned_user -> Int8,
+		added -> Bool,
+		action_time -> Timestamptz,
+		reason -> Text,
+	}
 }
 
 diesel::table! {
@@ -54,6 +86,17 @@ diesel::table! {
 }
 
 diesel::table! {
+	kick_actions (id) {
+		id -> Text,
+		guild -> Int8,
+		kicking_user -> Int8,
+		kicked_user -> Int8,
+		action_time -> Timestamptz,
+		reason -> Text,
+	}
+}
+
+diesel::table! {
 	use diesel::sql_types::*;
 	use super::sql_types::BuiltInTicketCategory;
 
@@ -67,10 +110,36 @@ diesel::table! {
 	}
 }
 
+diesel::table! {
+	timeout_actions (id) {
+		id -> Text,
+		guild -> Int8,
+		performing_user -> Int8,
+		target_user -> Int8,
+		action_time -> Timestamptz,
+		timeout_until -> Nullable<Timestamptz>,
+		reason -> Text,
+	}
+}
+
+diesel::joinable!(automod_actions -> guilds (guild));
+diesel::joinable!(ban_actions -> guilds (guild));
 diesel::joinable!(custom_categories -> forms (form));
 diesel::joinable!(custom_categories -> guilds (guild));
 diesel::joinable!(form_questions -> forms (form));
+diesel::joinable!(kick_actions -> guilds (guild));
 diesel::joinable!(tickets -> custom_categories (custom_category));
 diesel::joinable!(tickets -> guilds (guild));
+diesel::joinable!(timeout_actions -> guilds (guild));
 
-diesel::allow_tables_to_appear_in_same_query!(custom_categories, form_questions, forms, guilds, tickets,);
+diesel::allow_tables_to_appear_in_same_query!(
+	automod_actions,
+	ban_actions,
+	custom_categories,
+	form_questions,
+	forms,
+	guilds,
+	kick_actions,
+	tickets,
+	timeout_actions,
+);

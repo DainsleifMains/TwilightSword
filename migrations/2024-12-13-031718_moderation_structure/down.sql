@@ -8,6 +8,15 @@ ALTER TABLE guilds DROP COLUMN ban_appeal_ticket_form;
 ALTER TABLE guilds DROP COLUMN new_partner_ticket_form;
 ALTER TABLE guilds DROP COLUMN existing_partner_ticket_form;
 
+DROP INDEX timed_out_user_by_guild;
+DROP INDEX kicked_user_by_guild;
+DROP INDEX banned_user_by_guild;
+DROP INDEX automod_target_user_by_guild;
+DROP TABLE timeout_actions;
+DROP TABLE kick_actions;
+DROP TABLE ban_actions;
+DROP TABLE automod_actions;
+DROP TYPE automod_action_type;
 DROP TABLE tickets;
 DROP TABLE custom_categories;
 DROP TABLE form_questions;
