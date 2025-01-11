@@ -26,7 +26,7 @@ pub async fn route_setup_interaction(
 	interaction: &InteractionCreate,
 	interaction_data: &MessageComponentInteractionData,
 	custom_id_path: &[String],
-	http_client: Arc<Client>,
+	http_client: &Client,
 	application_id: Id<ApplicationMarker>,
 	db_connection_pool: Pool<ConnectionManager<PgConnection>>,
 	bot_state: Arc<RwLock<TypeMap>>,
@@ -81,7 +81,7 @@ async fn handle_admin_role_update(
 	interaction: &InteractionCreate,
 	interaction_data: &MessageComponentInteractionData,
 	setup_id: &str,
-	http_client: Arc<Client>,
+	http_client: &Client,
 	application_id: Id<ApplicationMarker>,
 	bot_state: Arc<RwLock<TypeMap>>,
 ) -> miette::Result<()> {
@@ -130,7 +130,7 @@ async fn handle_staff_role_update(
 	interaction: &InteractionCreate,
 	interaction_data: &MessageComponentInteractionData,
 	setup_id: &str,
-	http_client: Arc<Client>,
+	http_client: &Client,
 	application_id: Id<ApplicationMarker>,
 	bot_state: Arc<RwLock<TypeMap>>,
 ) -> miette::Result<()> {
@@ -178,7 +178,7 @@ async fn handle_staff_role_update(
 async fn handle_confirm(
 	interaction: &InteractionCreate,
 	setup_id: &str,
-	http_client: Arc<Client>,
+	http_client: &Client,
 	application_id: Id<ApplicationMarker>,
 	db_connection_pool: Pool<ConnectionManager<PgConnection>>,
 	bot_state: Arc<RwLock<TypeMap>>,
@@ -275,7 +275,7 @@ async fn handle_confirm(
 async fn handle_cancel(
 	interaction: &InteractionCreate,
 	setup_id: &str,
-	http_client: Arc<Client>,
+	http_client: &Client,
 	application_id: Id<ApplicationMarker>,
 	bot_state: Arc<RwLock<TypeMap>>,
 ) -> miette::Result<()> {

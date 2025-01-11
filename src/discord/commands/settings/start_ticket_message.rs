@@ -37,7 +37,7 @@ pub fn subcommand_definition() -> CommandOption {
 
 pub async fn handle_subcommand(
 	interaction: &InteractionCreate,
-	http_client: Arc<Client>,
+	http_client: &Client,
 	application_id: Id<ApplicationMarker>,
 	db_connection_pool: Pool<ConnectionManager<PgConnection>>,
 	bot_state: Arc<RwLock<TypeMap>>,

@@ -11,7 +11,6 @@ use chrono::{TimeZone, Utc};
 use diesel::prelude::*;
 use diesel::r2d2::{ConnectionManager, Pool};
 use miette::{bail, IntoDiagnostic};
-use std::sync::Arc;
 use twilight_http::client::Client;
 use twilight_mention::fmt::Mention;
 use twilight_model::channel::message::AllowedMentions;
@@ -22,7 +21,7 @@ use twilight_util::snowflake::Snowflake;
 
 pub async fn handle_kick(
 	event_audit_entry: &AuditLogEntry,
-	http_client: Arc<Client>,
+	http_client: &Client,
 	db_connection_pool: Pool<ConnectionManager<PgConnection>>,
 ) -> miette::Result<()> {
 	let Some(guild_id) = event_audit_entry.guild_id else {

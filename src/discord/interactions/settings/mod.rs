@@ -22,7 +22,7 @@ pub async fn route_settings_modal(
 	interaction: &InteractionCreate,
 	modal_data: &ModalInteractionData,
 	custom_id_path: &[String],
-	http_client: Arc<Client>,
+	http_client: &Client,
 	application_id: Id<ApplicationMarker>,
 	db_connection_pool: Pool<ConnectionManager<PgConnection>>,
 	bot_state: Arc<RwLock<TypeMap>>,

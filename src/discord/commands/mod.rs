@@ -27,7 +27,7 @@ pub fn command_definitions() -> Vec<Command> {
 pub async fn route_command(
 	interaction: &InteractionCreate,
 	command_data: &CommandData,
-	http_client: Arc<Client>,
+	http_client: &Arc<Client>,
 	application_id: Id<ApplicationMarker>,
 	db_connection_pool: Pool<ConnectionManager<PgConnection>>,
 	bot_state: Arc<RwLock<TypeMap>>,

@@ -35,7 +35,7 @@ pub fn command_definition() -> Command {
 
 pub async fn handle_command(
 	interaction: &InteractionCreate,
-	http_client: Arc<Client>,
+	http_client: &Arc<Client>,
 	application_id: Id<ApplicationMarker>,
 	db_connection_pool: Pool<ConnectionManager<PgConnection>>,
 	bot_state: Arc<RwLock<TypeMap>>,
@@ -96,7 +96,12 @@ pub async fn handle_command(
 		set_up_state.states.insert(setup_id.clone(), setup_instance);
 	}
 
-	tokio::spawn(expire_setup(http_client, application_id, bot_state, setup_id));
+	tokio::spawn(expire_setup(
+		Arc::clone(http_client),
+		application_id,
+		bot_state,
+		setup_id,
+	));
 
 	Ok(())
 }

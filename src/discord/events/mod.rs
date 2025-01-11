@@ -6,7 +6,6 @@
 
 use diesel::prelude::*;
 use diesel::r2d2::{ConnectionManager, Pool};
-use std::sync::Arc;
 use twilight_http::client::Client;
 use twilight_model::guild::audit_log::{AuditLogChange, AuditLogEntry, AuditLogEventType};
 
@@ -17,7 +16,7 @@ mod timeouts;
 
 pub async fn route_events(
 	event_audit_entry: &AuditLogEntry,
-	http_client: Arc<Client>,
+	http_client: &Client,
 	db_connection_pool: Pool<ConnectionManager<PgConnection>>,
 ) -> miette::Result<()> {
 	match event_audit_entry.action_type {
@@ -33,7 +32,7 @@ pub async fn route_events(
 		AuditLogEventType::MemberUpdate => {
 			for change in event_audit_entry.changes.iter() {
 				if let AuditLogChange::CommunicationDisabledUntil { new, .. } = change {
-					timeouts::handle_timeout_update(event_audit_entry, new, &http_client, &db_connection_pool).await?
+					timeouts::handle_timeout_update(event_audit_entry, new, http_client, &db_connection_pool).await?
 				}
 			}
 		}

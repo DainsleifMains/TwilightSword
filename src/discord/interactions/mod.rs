@@ -26,7 +26,7 @@ pub const MAX_INTERACTION_WAIT_TIME: Duration = Duration::from_secs(895);
 pub async fn route_interaction(
 	interaction: &InteractionCreate,
 	interaction_data: &MessageComponentInteractionData,
-	http_client: Arc<Client>,
+	http_client: &Client,
 	application_id: Id<ApplicationMarker>,
 	db_connection_pool: Pool<ConnectionManager<PgConnection>>,
 	bot_state: Arc<RwLock<TypeMap>>,
@@ -57,7 +57,7 @@ pub async fn route_interaction(
 pub async fn route_modal_submit(
 	interaction: &InteractionCreate,
 	modal_data: &ModalInteractionData,
-	http_client: Arc<Client>,
+	http_client: &Client,
 	application_id: Id<ApplicationMarker>,
 	db_connection_pool: Pool<ConnectionManager<PgConnection>>,
 	bot_state: Arc<RwLock<TypeMap>>,

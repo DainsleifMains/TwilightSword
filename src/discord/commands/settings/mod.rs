@@ -52,7 +52,7 @@ pub fn command_definition() -> Command {
 pub async fn handle_command(
 	interaction: &InteractionCreate,
 	command_data: &CommandData,
-	http_client: Arc<Client>,
+	http_client: &Client,
 	application_id: Id<ApplicationMarker>,
 	db_connection_pool: Pool<ConnectionManager<PgConnection>>,
 	bot_state: Arc<RwLock<TypeMap>>,

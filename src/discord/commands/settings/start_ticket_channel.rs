@@ -11,7 +11,6 @@ use crate::schema::guilds;
 use diesel::prelude::*;
 use diesel::r2d2::{ConnectionManager, Pool};
 use miette::{bail, ensure, IntoDiagnostic};
-use std::sync::Arc;
 use twilight_http::client::Client;
 use twilight_http::request::AuditLogReason;
 use twilight_mention::fmt::Mention;
@@ -50,7 +49,7 @@ pub fn subcommand_definition() -> CommandOption {
 pub async fn handle_subcommand(
 	interaction: &InteractionCreate,
 	subcommand_value: &CommandOptionValue,
-	http_client: Arc<Client>,
+	http_client: &Client,
 	application_id: Id<ApplicationMarker>,
 	db_connection_pool: Pool<ConnectionManager<PgConnection>>,
 ) -> miette::Result<()> {
@@ -130,7 +129,7 @@ pub async fn handle_subcommand(
 async fn get_ticket_channel(
 	interaction: &InteractionCreate,
 	guild: &Guild,
-	http_client: Arc<Client>,
+	http_client: &Client,
 	application_id: Id<ApplicationMarker>,
 ) -> miette::Result<()> {
 	let channel = guild.get_start_ticket_channel();
@@ -161,7 +160,7 @@ async fn set_ticket_channel(
 	guild_id: Id<GuildMarker>,
 	guild: &Guild,
 	subcommand_value: &CommandOptionValue,
-	http_client: Arc<Client>,
+	http_client: &Client,
 	application_id: Id<ApplicationMarker>,
 	db_connection: &mut PgConnection,
 ) -> miette::Result<()> {
@@ -253,7 +252,7 @@ async fn set_ticket_channel(
 async fn unset_ticket_channel(
 	interaction: &InteractionCreate,
 	guild: &Guild,
-	http_client: Arc<Client>,
+	http_client: &Client,
 	application_id: Id<ApplicationMarker>,
 	db_connection: &mut PgConnection,
 ) -> miette::Result<()> {
