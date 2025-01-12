@@ -4,7 +4,8 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-use crate::discord::responses::NOT_SET_UP_FOR_GUILD;
+use crate::discord::utils::permissions::channel_permissions;
+use crate::discord::utils::responses::NOT_SET_UP_FOR_GUILD;
 use crate::model::{database_id_from_discord_id, Guild};
 use crate::schema::guilds;
 use diesel::prelude::*;
@@ -17,8 +18,9 @@ use twilight_model::application::interaction::application_command::CommandOption
 use twilight_model::channel::message::{AllowedMentions, MessageFlags};
 use twilight_model::channel::ChannelType;
 use twilight_model::gateway::payload::incoming::InteractionCreate;
+use twilight_model::guild::Permissions;
 use twilight_model::http::interaction::{InteractionResponse, InteractionResponseType};
-use twilight_model::id::marker::ApplicationMarker;
+use twilight_model::id::marker::{ApplicationMarker, GuildMarker};
 use twilight_model::id::Id;
 use twilight_util::builder::command::{ChannelBuilder, SubCommandBuilder, SubCommandGroupBuilder};
 use twilight_util::builder::InteractionResponseDataBuilder;
@@ -106,6 +108,7 @@ pub async fn handle_subcommand(
 		"set" => {
 			set_complain_channel(
 				interaction,
+				guild_id,
 				&guild,
 				&value.value,
 				http_client,
@@ -157,6 +160,7 @@ async fn get_complain_channel(
 
 async fn set_complain_channel(
 	interaction: &InteractionCreate,
+	guild_id: Id<GuildMarker>,
 	guild: &Guild,
 	subcommand_value: &CommandOptionValue,
 	http_client: &Client,
@@ -180,13 +184,33 @@ async fn set_complain_channel(
 		bail!("Command data is malformed; expected `action_reason_complain_channel` option of `/settings action_reason_complain_channel set` to be a channel");
 	};
 
+	let permissions_in_channel = channel_permissions(guild_id, action_reason_complain_channel, http_client).await?;
+
+	let interaction_client = http_client.interaction(application_id);
+	if !permissions_in_channel.contains(Permissions::SEND_MESSAGES) {
+		let response = InteractionResponseDataBuilder::new()
+			.content(format!(
+				"The channel {} doesn't have the necessary permissions for me to post to it.",
+				action_reason_complain_channel.mention()
+			))
+			.build();
+		let response = InteractionResponse {
+			kind: InteractionResponseType::ChannelMessageWithSource,
+			data: Some(response),
+		};
+		interaction_client
+			.create_response(interaction.id, &interaction.token, &response)
+			.await
+			.into_diagnostic()?;
+		return Ok(());
+	}
+
 	let db_channel_id = database_id_from_discord_id(action_reason_complain_channel.get());
 
 	let db_result = diesel::update(guilds::table)
 		.filter(guilds::guild_id.eq(guild.guild_id))
 		.set(guilds::action_reason_complain_channel.eq(Some(db_channel_id)))
 		.execute(db_connection);
-	let interaction_client = http_client.interaction(application_id);
 	match db_result {
 		Ok(_) => {
 			let response = InteractionResponseDataBuilder::new()

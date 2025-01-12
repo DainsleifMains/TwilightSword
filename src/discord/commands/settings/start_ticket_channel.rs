@@ -4,8 +4,8 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-use crate::discord::responses::NOT_SET_UP_FOR_GUILD;
-use crate::discord::shared_components::new_ticket_button;
+use crate::discord::utils::responses::NOT_SET_UP_FOR_GUILD;
+use crate::discord::utils::shared_components::new_ticket_button;
 use crate::model::{database_id_from_discord_id, Guild};
 use crate::schema::guilds;
 use diesel::prelude::*;

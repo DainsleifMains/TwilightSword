@@ -5,8 +5,8 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use crate::discord::interactions::MAX_INTERACTION_WAIT_TIME;
-use crate::discord::responses::NOT_SET_UP_FOR_GUILD;
 use crate::discord::state::settings::start_ticket_message::StartTicketMessageState;
+use crate::discord::utils::responses::NOT_SET_UP_FOR_GUILD;
 use crate::model::{database_id_from_discord_id, Guild};
 use crate::schema::guilds;
 use diesel::prelude::*;

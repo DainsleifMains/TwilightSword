@@ -70,6 +70,7 @@ pub fn set_up_components(setup_id: &str, confirm_button_disabled: bool) -> Vec<C
 		disabled: confirm_button_disabled,
 		emoji: None,
 		url: None,
+		sku_id: None,
 	};
 	let cancel_button = Button {
 		label: Some(String::from("Cancel")),
@@ -78,6 +79,7 @@ pub fn set_up_components(setup_id: &str, confirm_button_disabled: bool) -> Vec<C
 		disabled: false,
 		emoji: None,
 		url: None,
+		sku_id: None,
 	};
 
 	let admin_role_row = ActionRow {

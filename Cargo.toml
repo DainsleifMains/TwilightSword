@@ -12,11 +12,11 @@ kdl = "6.1.0"
 miette = { version = "7.4.0", features = ["fancy"] }
 tracing = "0.1.41"
 tracing-subscriber = "0.3.19"
-twilight-cache-inmemory = "0.16.0-rc.1"
-twilight-gateway = "0.16.0-rc.1"
-twilight-http = "0.16.0-rc.1"
-twilight-mention = "0.16.0-rc.1"
-twilight-model = "0.16.0-rc.1"
+twilight-cache-inmemory = { git = "https://github.com/twilight-rs/twilight.git" }
+twilight-gateway = { git = "https://github.com/twilight-rs/twilight.git" }
+twilight-http = { git = "https://github.com/twilight-rs/twilight.git" }
+twilight-mention = { git = "https://github.com/twilight-rs/twilight.git" }
+twilight-model = { git = "https://github.com/twilight-rs/twilight.git" }
 type-map = "0.5.0"
 
 [dependencies.diesel]
@@ -38,8 +38,9 @@ features = [
 ]
 
 [dependencies.twilight-util]
-version = "0.16.0-rc.1"
+git = "https://github.com/twilight-rs/twilight.git"
 features = [
 	"builder",
+	"permission-calculator",
 	"snowflake"
 ]

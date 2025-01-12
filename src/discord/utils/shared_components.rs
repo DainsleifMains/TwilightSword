@@ -17,6 +17,7 @@ pub fn new_ticket_button(guild_id: Id<GuildMarker>) -> Component {
 		label: Some(String::from("Create Ticket")),
 		style: ButtonStyle::Primary,
 		url: None,
+		sku_id: None,
 	};
 	Component::ActionRow(ActionRow {
 		components: vec![Component::Button(create_button)],

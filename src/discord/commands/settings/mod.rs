@@ -12,6 +12,7 @@ use tokio::sync::RwLock;
 use twilight_http::client::Client;
 use twilight_model::application::command::{Command, CommandType};
 use twilight_model::application::interaction::application_command::CommandData;
+use twilight_model::application::interaction::InteractionContextType;
 use twilight_model::gateway::payload::incoming::InteractionCreate;
 use twilight_model::guild::Permissions;
 use twilight_model::id::marker::ApplicationMarker;
@@ -35,7 +36,7 @@ pub fn command_definition() -> Command {
 		"View or modify settings for your server",
 		CommandType::ChatInput,
 	)
-	.dm_permission(false)
+	.contexts([InteractionContextType::Guild])
 	.default_member_permissions(Permissions::MANAGE_GUILD)
 	.option(action_reason_complain_channel::subcommand_definition())
 	.option(admin_role::subcommand_definition())

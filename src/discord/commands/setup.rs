@@ -16,6 +16,7 @@ use tokio::sync::RwLock;
 use tokio::time::sleep;
 use twilight_http::client::Client;
 use twilight_model::application::command::{Command, CommandType};
+use twilight_model::application::interaction::InteractionContextType;
 use twilight_model::channel::message::MessageFlags;
 use twilight_model::gateway::payload::incoming::InteractionCreate;
 use twilight_model::guild::Permissions;
@@ -28,7 +29,7 @@ use type_map::concurrent::TypeMap;
 
 pub fn command_definition() -> Command {
 	CommandBuilder::new("setup", "Set up the bot for your guild", CommandType::ChatInput)
-		.dm_permission(false)
+		.contexts([InteractionContextType::Guild])
 		.default_member_permissions(Permissions::MANAGE_GUILD)
 		.build()
 }
