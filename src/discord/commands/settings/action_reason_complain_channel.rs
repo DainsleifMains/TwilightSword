@@ -190,7 +190,7 @@ async fn set_complain_channel(
 	if !permissions_in_channel.contains(Permissions::SEND_MESSAGES) {
 		let response = InteractionResponseDataBuilder::new()
 			.content(format!(
-				"The channel {} doesn't have the necessary permissions for me to post to it.",
+				"The channel {} doesn't have the necessary permissions (Send Messages) for me to post to it.",
 				action_reason_complain_channel.mention()
 			))
 			.build();
