@@ -8,15 +8,15 @@ chrono = "0.4.39"
 cuid2 = "0.1.3"
 diesel-derive-enum = { version = "2.1.0", features = ["postgres"] }
 diesel_migrations = "2.2.0"
-kdl = "6.1.0"
+kdl = "6.2.2"
 miette = { version = "7.4.0", features = ["fancy"] }
 tracing = "0.1.41"
 tracing-subscriber = "0.3.19"
-twilight-cache-inmemory = { git = "https://github.com/twilight-rs/twilight.git" }
-twilight-gateway = { git = "https://github.com/twilight-rs/twilight.git" }
-twilight-http = { git = "https://github.com/twilight-rs/twilight.git" }
-twilight-mention = { git = "https://github.com/twilight-rs/twilight.git" }
-twilight-model = { git = "https://github.com/twilight-rs/twilight.git" }
+twilight-cache-inmemory = "0.16.0"
+twilight-gateway = "0.16.0"
+twilight-http = "0.16.0"
+twilight-mention = "0.16.0"
+twilight-model = "0.16.0"
 type-map = "0.5.0"
 
 [dependencies.diesel]
@@ -28,7 +28,7 @@ features = [
 ]
 
 [dependencies.tokio]
-version = "1.42.0"
+version = "1.43.0"
 features = [
 	"fs",
 	"macros",
@@ -38,7 +38,7 @@ features = [
 ]
 
 [dependencies.twilight-util]
-git = "https://github.com/twilight-rs/twilight.git"
+version = "0.16.0"
 features = [
 	"builder",
 	"permission-calculator",
