@@ -4,6 +4,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+use crate::discord::utils::permissions::channel_permissions;
 use crate::discord::utils::responses::NOT_SET_UP_FOR_GUILD;
 use crate::discord::utils::shared_components::new_ticket_button;
 use crate::model::{database_id_from_discord_id, Guild};
@@ -19,6 +20,7 @@ use twilight_model::application::interaction::application_command::CommandOption
 use twilight_model::channel::message::{AllowedMentions, MessageFlags};
 use twilight_model::channel::ChannelType;
 use twilight_model::gateway::payload::incoming::InteractionCreate;
+use twilight_model::guild::Permissions;
 use twilight_model::http::interaction::{InteractionResponse, InteractionResponseType};
 use twilight_model::id::marker::{ApplicationMarker, GuildMarker};
 use twilight_model::id::Id;
@@ -182,6 +184,25 @@ async fn set_ticket_channel(
 		bail!("Command data is malformed; expected `start_ticket_channel` option of `/settings start_ticket_channel set` to be a channel");
 	};
 
+	let permissions_in_channel = channel_permissions(guild_id, start_ticket_channel, http_client).await?;
+	let interaction_client = http_client.interaction(application_id);
+	if !permissions_in_channel.contains(Permissions::SEND_MESSAGES) {
+		let response_content = format!(
+			"The channel {} does not have the necessary permissions (Send Messages) for me to post to it.",
+			start_ticket_channel.mention()
+		);
+		let response = InteractionResponseDataBuilder::new().content(response_content).build();
+		let response = InteractionResponse {
+			kind: InteractionResponseType::ChannelMessageWithSource,
+			data: Some(response),
+		};
+		interaction_client
+			.create_response(interaction.id, &interaction.token, &response)
+			.await
+			.into_diagnostic()?;
+		return Ok(());
+	}
+
 	if let (Some(original_channel), Some(original_message)) = (original_channel, original_message) {
 		http_client
 			.delete_message(original_channel, original_message)
@@ -210,7 +231,6 @@ async fn set_ticket_channel(
 			guilds::start_ticket_message_id.eq(Some(db_message_id)),
 		))
 		.execute(db_connection);
-	let interaction_client = http_client.interaction(application_id);
 	match db_result {
 		Ok(_) => {
 			let response = InteractionResponseDataBuilder::new()

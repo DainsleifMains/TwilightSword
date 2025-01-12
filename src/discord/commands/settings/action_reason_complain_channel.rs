@@ -188,12 +188,11 @@ async fn set_complain_channel(
 
 	let interaction_client = http_client.interaction(application_id);
 	if !permissions_in_channel.contains(Permissions::SEND_MESSAGES) {
-		let response = InteractionResponseDataBuilder::new()
-			.content(format!(
-				"The channel {} doesn't have the necessary permissions (Send Messages) for me to post to it.",
-				action_reason_complain_channel.mention()
-			))
-			.build();
+		let response_content = format!(
+			"The channel {} doesn't have the necessary permissions (Send Messages) for me to post to it.",
+			action_reason_complain_channel.mention()
+		);
+		let response = InteractionResponseDataBuilder::new().content(response_content).build();
 		let response = InteractionResponse {
 			kind: InteractionResponseType::ChannelMessageWithSource,
 			data: Some(response),
