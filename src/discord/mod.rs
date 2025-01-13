@@ -11,4 +11,4 @@ mod interactions;
 mod state;
 mod utils;
 
-pub use connection::run_bot;
+pub use connection::{run_bot, set_up_client};

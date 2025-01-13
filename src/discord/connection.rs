@@ -22,15 +22,18 @@ use twilight_model::id::marker::ApplicationMarker;
 use twilight_model::id::Id;
 use type_map::concurrent::TypeMap;
 
+pub fn set_up_client(config: &ConfigData) -> Arc<Client> {
+	Arc::new(Client::new(config.discord_token.clone()))
+}
+
 pub async fn run_bot(
 	db_connection_pool: Pool<ConnectionManager<PgConnection>>,
 	config: Arc<ConfigData>,
+	http_client: Arc<Client>,
 ) -> miette::Result<()> {
 	let intents = Intents::GUILD_MODERATION | Intents::GUILD_MESSAGES | Intents::MESSAGE_CONTENT;
 
 	let mut shard = Shard::new(ShardId::ONE, config.discord_token.clone(), intents);
-
-	let http_client = Arc::new(Client::new(config.discord_token.clone()));
 
 	let cache = DefaultInMemoryCache::builder()
 		.resource_types(ResourceType::all())

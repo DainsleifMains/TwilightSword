@@ -16,7 +16,7 @@ async fn main() -> miette::Result<()> {
 	use tokio::net::TcpListener;
 	use twilight_sword::config::parse_config;
 	use twilight_sword::database::{connect_db, run_embedded_migrations};
-	use twilight_sword::discord::run_bot;
+	use twilight_sword::discord::{run_bot, set_up_client};
 	use twilight_sword::web::app::{shell, App};
 
 	tracing_subscriber::fmt::init();
@@ -27,16 +27,30 @@ async fn main() -> miette::Result<()> {
 
 	let config = Arc::new(config);
 
+	let discord_client = set_up_client(&config);
+
 	let web_config = get_configuration(None).into_diagnostic()?;
 	let site_addr = &config.web_addr;
 	let leptos_options = web_config.leptos_options;
 	let routes = generate_route_list(App);
 
 	let app = Router::new()
-		.leptos_routes(&leptos_options, routes, {
-			let leptos_options = leptos_options.clone();
-			move || shell(leptos_options.clone())
-		})
+		.leptos_routes_with_context(
+			&leptos_options,
+			routes,
+			{
+				let discord_client = Arc::clone(&discord_client);
+				let db_connection_pool = db_connection_pool.clone();
+				move || {
+					provide_context(discord_client.clone());
+					provide_context(db_connection_pool.clone());
+				}
+			},
+			{
+				let leptos_options = leptos_options.clone();
+				move || shell(leptos_options.clone())
+			},
+		)
 		.fallback(leptos_axum::file_and_error_handler(shell))
 		.with_state(leptos_options);
 
@@ -49,7 +63,7 @@ async fn main() -> miette::Result<()> {
 		}
 	});
 
-	run_bot(db_connection_pool.clone(), Arc::clone(&config)).await?;
+	run_bot(db_connection_pool.clone(), Arc::clone(&config), discord_client).await?;
 
 	Ok(())
 }
