@@ -10,9 +10,16 @@ use tokio::fs::read_to_string;
 
 #[derive(Debug)]
 pub struct ConfigData {
-	pub discord_token: String,
+	pub discord: DiscordArgs,
 	pub database: DatabaseArgs,
 	pub web_addr: String,
+}
+
+#[derive(Debug)]
+pub struct DiscordArgs {
+	pub bot_token: String,
+	pub client_id: String,
+	pub client_secret: String,
 }
 
 #[derive(Debug)]
@@ -28,30 +35,94 @@ pub async fn parse_config(config_path: &str) -> miette::Result<ConfigData> {
 	let config_file_contents = read_to_string(config_path).await.into_diagnostic()?;
 	let config_document: KdlDocument = config_file_contents.parse()?;
 
-	let Some(discord_token_node) = config_document.get("discord-token") else {
-		bail!(miette!(code = "required::discord-token", "required discord-token"));
+	let Some(discord_args_node) = config_document.get("discord") else {
+		bail!(miette!(code = "required::discord", "required discord information"));
 	};
-	let Some(discord_token) = discord_token_node.get(0) else {
-		bail!(
-			miette!(code = "value::discord-token", "expected discord-token to have a value")
-				.with_source_code(format!("{}", discord_token_node))
-		);
-	};
-	let Some(discord_token) = discord_token.as_string() else {
+	let Some(discord_args) = discord_args_node.children() else {
 		bail!(miette!(
-			code = "type::discord-token",
-			"expected discord-token value to be a string"
-		)
-		.with_source_code(format!("{}", discord_token_node)));
+			code = "format::discord",
+			"expected discord to have child nodes"
+		));
 	};
-	let discord_token = discord_token.to_string();
+	let Some(discord_bot_token) = discord_args.get("bot-token") else {
+		bail!(miette!(
+			code = "required::discord::bot-token",
+			"required bot-token property of discord"
+		));
+	};
+	let Some(discord_client_id) = discord_args.get("client-id") else {
+		bail!(miette!(
+			code = "required::discord::client-id",
+			"required client-id property of discord"
+		));
+	};
+	let Some(discord_client_secret) = discord_args.get("client-secret") else {
+		bail!(miette!(
+			code = "required::discord::client-secret",
+			"required client-secret property of discord"
+		));
+	};
+
+	let Some(discord_bot_token) = discord_bot_token.get(0) else {
+		bail!(miette!(
+			code = "value::discord::bot-token",
+			"expected discord bot token to have a value"
+		)
+		.with_source_code(format!("{}", discord_args_node)));
+	};
+	let Some(discord_bot_token) = discord_bot_token.as_string() else {
+		bail!(miette!(
+			code = "type::discord::bot-token",
+			"expected discord bot token to be a string"
+		)
+		.with_source_code(format!("{}", discord_args_node)));
+	};
+	let discord_bot_token = discord_bot_token.to_string();
+
+	let Some(discord_client_id) = discord_client_id.get(0) else {
+		bail!(miette!(
+			code = "value::discord::client-id",
+			"expected discord client ID to have a value"
+		)
+		.with_source_code(format!("{}", discord_args_node)));
+	};
+	let Some(discord_client_id) = discord_client_id.as_string() else {
+		bail!(miette!(
+			code = "type::discord::client-id",
+			"expected discord client ID to be a string"
+		)
+		.with_source_code(format!("{}", discord_args_node)));
+	};
+	let discord_client_id = discord_client_id.to_string();
+
+	let Some(discord_client_secret) = discord_client_secret.get(0) else {
+		bail!(miette!(
+			code = "value::discord::client-secret",
+			"expected discord client secret to have a value"
+		)
+		.with_source_code(format!("{}", discord_args_node)));
+	};
+	let Some(discord_client_secret) = discord_client_secret.as_string() else {
+		bail!(miette!(
+			code = "type::discord::client-secret",
+			"expected discord client secret to be a string"
+		)
+		.with_source_code(format!("{}", discord_args_node)));
+	};
+	let discord_client_secret = discord_client_secret.to_string();
+
+	let discord = DiscordArgs {
+		bot_token: discord_bot_token,
+		client_id: discord_client_id,
+		client_secret: discord_client_secret,
+	};
 
 	let Some(database_args_node) = config_document.get("database") else {
 		bail!(miette!(code = "required::database", "required database information"));
 	};
 	let Some(database_args) = database_args_node.children() else {
 		bail!(
-			miette!(code = "format::database", "expected databasse to have child nodes")
+			miette!(code = "format::database", "expected database to have child nodes")
 				.with_source_code(format!("{}", database_args_node))
 		);
 	};
@@ -196,7 +267,7 @@ pub async fn parse_config(config_path: &str) -> miette::Result<ConfigData> {
 	let web_addr = web_addr.to_string();
 
 	let config = ConfigData {
-		discord_token,
+		discord,
 		database,
 		web_addr,
 	};

@@ -23,7 +23,7 @@ use twilight_model::id::Id;
 use type_map::concurrent::TypeMap;
 
 pub fn set_up_client(config: &ConfigData) -> Arc<Client> {
-	Arc::new(Client::new(config.discord_token.clone()))
+	Arc::new(Client::new(config.discord.bot_token.clone()))
 }
 
 pub async fn run_bot(
@@ -33,7 +33,7 @@ pub async fn run_bot(
 ) -> miette::Result<()> {
 	let intents = Intents::GUILD_MODERATION | Intents::GUILD_MESSAGES | Intents::MESSAGE_CONTENT;
 
-	let mut shard = Shard::new(ShardId::ONE, config.discord_token.clone(), intents);
+	let mut shard = Shard::new(ShardId::ONE, config.discord.bot_token.clone(), intents);
 
 	let cache = DefaultInMemoryCache::builder()
 		.resource_types(ResourceType::all())
