@@ -12,6 +12,7 @@ use tokio::fs::read_to_string;
 pub struct ConfigData {
 	pub discord_token: String,
 	pub database: DatabaseArgs,
+	pub web_addr: String,
 }
 
 #[derive(Debug)]
@@ -179,9 +180,25 @@ pub async fn parse_config(config_path: &str) -> miette::Result<ConfigData> {
 		database: database_database,
 	};
 
+	let Some(web_addr_node) = config_document.get("web-addr") else {
+		bail!(miette!(code = "required::web-addr", "required web-addr"));
+	};
+	let Some(web_addr) = web_addr_node.get(0) else {
+		bail!(miette!(code = "value::web-addr", "expected web-addr to have a value")
+			.with_source_code(format!("{}", web_addr_node)));
+	};
+	let Some(web_addr) = web_addr.as_string() else {
+		bail!(miette!(
+			code = "type::web-addr",
+			"expected web-addr value to be a string"
+		));
+	};
+	let web_addr = web_addr.to_string();
+
 	let config = ConfigData {
 		discord_token,
 		database,
+		web_addr,
 	};
 
 	Ok(config)
