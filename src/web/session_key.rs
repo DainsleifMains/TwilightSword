@@ -4,14 +4,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-pub mod app;
-#[cfg(feature = "ssr")]
-mod auth;
-#[cfg(feature = "ssr")]
-pub mod server;
-#[cfg(feature = "ssr")]
-mod session;
-#[cfg(feature = "ssr")]
-mod session_key;
-#[cfg(feature = "ssr")]
-mod state;
+pub const DISCORD_USER: &str = "discord_user";
+pub const AUTH_CALLBACK_PATH: &str = "auth_callback_uri";
+pub const AUTH_CSRF_STATE: &str = "csrf_state";
+pub const AUTH_CSRF_VERIFIER: &str = "csrf_verifier";

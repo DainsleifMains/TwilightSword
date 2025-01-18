@@ -117,3 +117,11 @@ CREATE TABLE timeout_actions (
 );
 
 CREATE INDEX timed_out_user_by_guild ON timeout_actions (guild, target_user);
+
+CREATE TABLE sessions (
+	session_id NUMERIC PRIMARY KEY,
+	data TEXT NOT NULL,
+	expires TIMESTAMP WITH TIME ZONE NOT NULL
+);
+
+CREATE INDEX session_expiry ON sessions (expires);

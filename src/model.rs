@@ -5,9 +5,10 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use crate::schema::{
-	automod_actions, ban_actions, custom_categories, form_questions, forms, guilds, kick_actions, tickets,
+	automod_actions, ban_actions, custom_categories, form_questions, forms, guilds, kick_actions, sessions, tickets,
 	timeout_actions,
 };
+use bigdecimal::BigDecimal;
 use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 use diesel_derive_enum::DbEnum;
@@ -464,6 +465,13 @@ impl TimeoutAction {
 	pub fn get_target_user(&self) -> Id<UserMarker> {
 		Id::new(discord_id_from_database_id(self.target_user))
 	}
+}
+
+#[derive(Insertable, Queryable)]
+pub struct Session {
+	pub session_id: BigDecimal,
+	pub data: String,
+	pub expires: DateTime<Utc>,
 }
 
 /// Converts an ID used with Discord (unsigned) to an ID for Postgres use (signed)

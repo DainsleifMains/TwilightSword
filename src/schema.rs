@@ -97,6 +97,14 @@ diesel::table! {
 }
 
 diesel::table! {
+	sessions (session_id) {
+		session_id -> Numeric,
+		data -> Text,
+		expires -> Timestamptz,
+	}
+}
+
+diesel::table! {
 	use diesel::sql_types::*;
 	use super::sql_types::BuiltInTicketCategory;
 
@@ -140,6 +148,7 @@ diesel::allow_tables_to_appear_in_same_query!(
 	forms,
 	guilds,
 	kick_actions,
+	sessions,
 	tickets,
 	timeout_actions,
 );

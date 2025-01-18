@@ -12,7 +12,7 @@ use tokio::fs::read_to_string;
 pub struct ConfigData {
 	pub discord: DiscordArgs,
 	pub database: DatabaseArgs,
-	pub web_addr: String,
+	pub web: WebArgs,
 }
 
 #[derive(Debug)]
@@ -29,6 +29,12 @@ pub struct DatabaseArgs {
 	pub username: String,
 	pub password: String,
 	pub database: String,
+}
+
+#[derive(Debug)]
+pub struct WebArgs {
+	pub addr: String,
+	pub base_url: String,
 }
 
 pub async fn parse_config(config_path: &str) -> miette::Result<ConfigData> {
@@ -251,26 +257,50 @@ pub async fn parse_config(config_path: &str) -> miette::Result<ConfigData> {
 		database: database_database,
 	};
 
-	let Some(web_addr_node) = config_document.get("web-addr") else {
-		bail!(miette!(code = "required::web-addr", "required web-addr"));
+	let Some(web_args_node) = config_document.get("web") else {
+		bail!(miette!(code = "required::web", "required web"));
 	};
-	let Some(web_addr) = web_addr_node.get(0) else {
-		bail!(miette!(code = "value::web-addr", "expected web-addr to have a value")
-			.with_source_code(format!("{}", web_addr_node)));
+	let Some(web_args) = web_args_node.children() else {
+		bail!(miette!(code = "format::web", "expected web to have child nodes"));
+	};
+	let Some(web_addr) = web_args.get("addr") else {
+		bail!(miette!(code = "required::web::addr", "required addr property of web"));
+	};
+	let Some(web_base_url) = web_args.get("base-url") else {
+		bail!(miette!(
+			code = "required::web::base-url",
+			"required base-url property of web"
+		));
+	};
+
+	let Some(web_addr) = web_addr.get(0) else {
+		bail!(miette!(code = "value::web::addr", "expected web addr to have a value"));
 	};
 	let Some(web_addr) = web_addr.as_string() else {
-		bail!(miette!(
-			code = "type::web-addr",
-			"expected web-addr value to be a string"
-		));
+		bail!(miette!(code = "type::web::addr", "expected web addr to be a string"));
 	};
 	let web_addr = web_addr.to_string();
 
-	let config = ConfigData {
-		discord,
-		database,
-		web_addr,
+	let Some(web_base_url) = web_base_url.get(0) else {
+		bail!(miette!(
+			code = "value::web::base-url",
+			"expected web base-url to have a value"
+		));
 	};
+	let Some(web_base_url) = web_base_url.as_string() else {
+		bail!(miette!(
+			code = "type::web::base-url",
+			"expected web base-url to be a string"
+		));
+	};
+	let web_base_url = web_base_url.to_string();
+
+	let web = WebArgs {
+		addr: web_addr,
+		base_url: web_base_url,
+	};
+
+	let config = ConfigData { discord, database, web };
 
 	Ok(config)
 }
