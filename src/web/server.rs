@@ -4,8 +4,9 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-use super::app::{shell, App};
 use super::auth::{discord_auth_layer, discord_auth_route};
+use super::pages::app::App;
+use super::pages::shell::shell;
 use super::session::DatabaseStore;
 use super::state::AppState;
 use crate::config::ConfigData;

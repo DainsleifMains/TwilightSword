@@ -6,25 +6,9 @@
 
 use leptos::prelude::*;
 use leptos::{component, view, IntoView};
-use leptos_meta::{provide_meta_context, MetaTags, Stylesheet, Title};
+use leptos_meta::{provide_meta_context, Stylesheet, Title};
 use leptos_router::components::{Route, Router, Routes};
 use leptos_router::StaticSegment;
-
-pub fn shell(options: LeptosOptions) -> impl IntoView {
-	view! {
-		<!DOCTYPE html>
-		<html>
-			<head>
-				<meta charset="utf-8" />
-				<HydrationScripts options />
-				<MetaTags />
-			</head>
-			<body>
-				<App />
-			</body>
-		</html>
-	}
-}
 
 #[component]
 pub fn App() -> impl IntoView {
@@ -56,8 +40,8 @@ pub fn DiscordIdView() -> impl IntoView {
 
 #[server]
 pub async fn get_user_id() -> Result<u64, ServerFnError> {
-	use super::session_key::DISCORD_USER;
-	use super::state::AppState;
+	use crate::web::session_key::DISCORD_USER;
+	use crate::web::state::AppState;
 	use leptos_axum::extract_with_state;
 	use tower_sessions::Session;
 	use twilight_model::id::marker::UserMarker;

@@ -4,16 +4,6 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+pub mod app;
 #[cfg(feature = "ssr")]
-mod auth;
-mod pages;
-#[cfg(feature = "ssr")]
-pub mod server;
-#[cfg(feature = "ssr")]
-mod session;
-#[cfg(feature = "ssr")]
-mod session_key;
-#[cfg(feature = "ssr")]
-mod state;
-
-pub use pages::app::App;
+pub mod shell;
