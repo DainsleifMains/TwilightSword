@@ -1,0 +1,14 @@
+html {
+	background: linear-gradient(150deg, #000 40%, #004 100%);
+	color: #f6f6ff;
+	height: 100vh;
+	font-family: sans-serif;
+}
+
+a {
+	color: #ccf;
+
+	&:visited {
+		color: #fcf;
+	}
+}
