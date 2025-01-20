@@ -79,6 +79,7 @@ diesel::table! {
 		admin_role -> Int8,
 		staff_role -> Int8,
 		action_reason_complain_channel -> Nullable<Int8>,
+		custom_host -> Nullable<Text>,
 		ban_appeal_ticket_form -> Nullable<Text>,
 		new_partner_ticket_form -> Nullable<Text>,
 		existing_partner_ticket_form -> Nullable<Text>,

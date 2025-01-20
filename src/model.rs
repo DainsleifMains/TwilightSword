@@ -90,6 +90,8 @@ pub struct Guild {
 	pub new_partner_ticket_form: Option<String>,
 	/// The ID of the form used for existing partnership tickets, if those tickets use a form.
 	pub existing_partner_ticket_form: Option<String>,
+	/// For guilds that have a custom domain name pointing to the website, the custom host they use.
+	pub custom_host: Option<String>,
 }
 
 impl Guild {

@@ -18,8 +18,11 @@ CREATE TABLE guilds (
 	tcn_partner_integration BOOLEAN NOT NULL,
 	admin_role discord_id NOT NULL,
 	staff_role discord_id NOT NULL,
-	action_reason_complain_channel discord_id
+	action_reason_complain_channel discord_id,
+	custom_host TEXT UNIQUE
 );
+
+CREATE INDEX guild_custom_host ON guilds (custom_host);
 
 CREATE TYPE built_in_ticket_category AS ENUM (
 	'ban_appeal',
