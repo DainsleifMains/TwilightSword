@@ -86,8 +86,8 @@ features = [
 optional = true
 
 [dependencies.wasm-bindgen]
-# The current version of cargo-leptos (0.2.24) is built with wasm-bindgen 0.2.99
-version = "=0.2.99"
+# This must match the version of wasm-bindgen with which cargo-leptos is built
+version = "=0.2.100"
 optional = true
 
 [features]
