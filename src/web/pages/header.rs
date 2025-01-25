@@ -61,17 +61,28 @@ async fn guild_header_data(guild_id: Option<u64>) -> Result<Option<GuildData>, S
 
 	let state = expect_context::<AppState>();
 
-	let guild_id = match guild_id {
-		Some(id) => Id::new(id),
-		None => {
-			let Host(host) = extract_with_state(&state).await?;
+	let mut db_connection = state.db_connection_pool.get()?;
 
-			let mut db_connection = state.db_connection_pool.get()?;
-			let guild: Guild = guilds::table
-				.filter(guilds::custom_host.eq(&host))
-				.first(&mut db_connection)?;
-			guild.get_guild_id()
+	let Host(host) = extract_with_state(&state).await?;
+	let host_guild: Option<Guild> = guilds::table
+		.filter(guilds::custom_host.eq(&host))
+		.first(&mut db_connection)
+		.optional()?;
+	let host_guild_id = host_guild.as_ref().map(|guild| guild.get_guild_id());
+
+	let guild_id = match guild_id {
+		Some(id) => {
+			if host_guild_id.is_some() {
+				None
+			} else {
+				Some(Id::new(id))
+			}
 		}
+		None => host_guild_id,
+	};
+
+	let Some(guild_id) = guild_id else {
+		return Ok(None);
 	};
 
 	let discord_client = &state.discord_client;
