@@ -4,10 +4,12 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-pub mod app;
-mod dashboard;
-mod errors;
-mod header;
-#[cfg(feature = "ssr")]
-pub mod shell;
-mod utils;
+use leptos::prelude::*;
+
+#[component]
+pub fn Error() -> impl IntoView {
+	view! {
+		<h1>"Error!"</h1>
+		<p>"An error occurred handling this request."</p>
+	}
+}
