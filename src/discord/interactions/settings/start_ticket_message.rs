@@ -122,7 +122,7 @@ pub async fn handle_start_ticket_message_modal(
 					.into_diagnostic()?;
 			}
 			None => {
-				let new_ticket_button = new_ticket_button(guild_id);
+				let new_ticket_button = new_ticket_button();
 				let new_message = http_client
 					.create_message(start_ticket_channel_id)
 					.content(&new_message)

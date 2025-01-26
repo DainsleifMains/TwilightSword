@@ -211,7 +211,7 @@ async fn set_ticket_channel(
 			.into_diagnostic()?;
 	}
 
-	let create_ticket_button = new_ticket_button(guild_id);
+	let create_ticket_button = new_ticket_button();
 	let new_message = http_client
 		.create_message(start_ticket_channel)
 		.content(&guild.start_ticket_message)
