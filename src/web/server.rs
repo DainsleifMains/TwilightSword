@@ -49,7 +49,7 @@ async fn run_server(
 	discord_client: Arc<Client>,
 ) -> miette::Result<()> {
 	let web_config = get_configuration(None).into_diagnostic()?;
-	let site_addr = &config.web.addr;
+	let site_addr = &config.web.bind_addr;
 	let leptos_options = web_config.leptos_options;
 	let routes = generate_route_list(App);
 

@@ -33,7 +33,7 @@ pub struct DatabaseArgs {
 
 #[derive(Debug)]
 pub struct WebArgs {
-	pub addr: String,
+	pub bind_addr: String,
 	pub base_url: String,
 }
 
@@ -263,8 +263,11 @@ pub async fn parse_config(config_path: &str) -> miette::Result<ConfigData> {
 	let Some(web_args) = web_args_node.children() else {
 		bail!(miette!(code = "format::web", "expected web to have child nodes"));
 	};
-	let Some(web_addr) = web_args.get("addr") else {
-		bail!(miette!(code = "required::web::addr", "required addr property of web"));
+	let Some(web_bind_addr) = web_args.get("bind-addr") else {
+		bail!(miette!(
+			code = "required::web::bind-addr",
+			"required bind-addr property of web"
+		));
 	};
 	let Some(web_base_url) = web_args.get("base-url") else {
 		bail!(miette!(
@@ -273,13 +276,19 @@ pub async fn parse_config(config_path: &str) -> miette::Result<ConfigData> {
 		));
 	};
 
-	let Some(web_addr) = web_addr.get(0) else {
-		bail!(miette!(code = "value::web::addr", "expected web addr to have a value"));
+	let Some(web_bind_addr) = web_bind_addr.get(0) else {
+		bail!(miette!(
+			code = "value::web::bind-addr",
+			"expected web bind-addr to have a value"
+		));
 	};
-	let Some(web_addr) = web_addr.as_string() else {
-		bail!(miette!(code = "type::web::addr", "expected web addr to be a string"));
+	let Some(web_bind_addr) = web_bind_addr.as_string() else {
+		bail!(miette!(
+			code = "type::web::bind-addr",
+			"expected web bind-addr to be a string"
+		));
 	};
-	let web_addr = web_addr.to_string();
+	let web_bind_addr = web_bind_addr.to_string();
 
 	let Some(web_base_url) = web_base_url.get(0) else {
 		bail!(miette!(
@@ -296,7 +305,7 @@ pub async fn parse_config(config_path: &str) -> miette::Result<ConfigData> {
 	let web_base_url = web_base_url.to_string();
 
 	let web = WebArgs {
-		addr: web_addr,
+		bind_addr: web_bind_addr,
 		base_url: web_base_url,
 	};
 
