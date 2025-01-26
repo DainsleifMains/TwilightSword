@@ -195,7 +195,7 @@ async fn handle_confirm(
 
 	let (Some(admin_role), Some(staff_role)) = (interaction_state.admin_role, interaction_state.staff_role) else {
 		let response = InteractionResponseDataBuilder::new()
-			.content("Both roles must be selected to set Twilight Sword.")
+			.content("Both roles must be selected to set up Twilight Sword.")
 			.build();
 		let response = InteractionResponse {
 			kind: InteractionResponseType::ChannelMessageWithSource,
@@ -282,9 +282,7 @@ async fn handle_cancel(
 	let mut state = bot_state.write().await;
 	let setup_state = state.get_mut::<SetupState>();
 
-	if let Some(setup_state) = setup_state {
-		setup_state.states.remove(setup_id);
-	}
+	let setup_instance_state = setup_state.and_then(|state| state.states.remove(setup_id));
 
 	let interaction_client = http_client.interaction(application_id);
 	let response = InteractionResponseDataBuilder::new()
@@ -294,10 +292,17 @@ async fn handle_cancel(
 		kind: InteractionResponseType::ChannelMessageWithSource,
 		data: Some(response),
 	};
-	interaction_client
-		.create_response(interaction.id, &interaction.token, &response)
-		.await
-		.into_diagnostic()?;
+	let message_send = interaction_client.create_response(interaction.id, &interaction.token, &response);
+	if let Some(setup_instance_state) = setup_instance_state {
+		let initial_edit = interaction_client
+			.update_response(&setup_instance_state.initial_message_token)
+			.components(None);
+		let (send_result, edit_result) = tokio::join!(message_send, initial_edit);
+		send_result.into_diagnostic()?;
+		edit_result.into_diagnostic()?;
+	} else {
+		message_send.await.into_diagnostic()?;
+	}
 
 	Ok(())
 }
