@@ -22,8 +22,6 @@ CREATE TABLE guilds (
 	custom_host TEXT UNIQUE
 );
 
-CREATE INDEX guild_custom_host ON guilds (custom_host);
-
 CREATE TYPE built_in_ticket_category AS ENUM (
 	'ban_appeal',
 	'new_partner',
