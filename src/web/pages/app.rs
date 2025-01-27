@@ -8,13 +8,12 @@ use super::dashboard::Dashboard;
 use super::errors::error::Error;
 use super::errors::not_found::NotFound;
 use super::header::PageHeader;
-use super::utils::get_guild_data;
+use super::utils::{get_guild_data, GuildParam};
 use leptos::prelude::*;
 use leptos_meta::{provide_meta_context, Stylesheet, Title};
 use leptos_router::components::{ParentRoute, Route, Router, Routes};
 use leptos_router::hooks::use_params;
 use leptos_router::nested_router::Outlet;
-use leptos_router::params::Params;
 use leptos_router::path;
 
 #[component]
@@ -33,11 +32,6 @@ pub fn App() -> impl IntoView {
 			</Routes>
 		</Router>
 	}
-}
-
-#[derive(Params, PartialEq)]
-struct GuildParam {
-	guild: Option<u64>,
 }
 
 #[component]

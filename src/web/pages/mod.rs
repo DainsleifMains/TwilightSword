@@ -9,5 +9,7 @@ mod dashboard;
 mod errors;
 mod header;
 #[cfg(feature = "ssr")]
+mod server_utils;
+#[cfg(feature = "ssr")]
 pub mod shell;
 mod utils;
