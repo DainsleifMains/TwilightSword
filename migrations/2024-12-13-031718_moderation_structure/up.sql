@@ -66,6 +66,8 @@ CREATE TABLE tickets (
 	CONSTRAINT has_category CHECK(built_in_category IS NOT NULL OR custom_category IS NOT NULL)
 );
 
+CREATE INDEX tickets_for_guild_with_user ON tickets (guild, with_user);
+
 CREATE TYPE automod_action_type AS ENUM (
 	'block',
 	'disable_communication'

@@ -19,6 +19,7 @@ DROP TABLE kick_actions;
 DROP TABLE ban_actions;
 DROP TABLE automod_actions;
 DROP TYPE automod_action_type;
+DROP INDEX tickets_for_guild_with_user;
 DROP TABLE tickets;
 DROP TABLE custom_categories;
 DROP TABLE form_questions;
