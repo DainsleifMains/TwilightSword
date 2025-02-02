@@ -27,7 +27,7 @@ pub fn Dashboard() -> impl IntoView {
 				<tbody>
 					{
 						move || match &user_tickets.read().as_ref().and_then(|tickets| tickets.as_ref().ok()) {
-							Some(ticket_data) => {
+							Some(ticket_data) if !ticket_data.is_empty() => {
 								ticket_data.iter().map(|ticket|
 									view! {
 										<tr>
@@ -37,10 +37,19 @@ pub fn Dashboard() -> impl IntoView {
 												</a>
 											</td>
 										</tr>
-									}
+									}.into_any()
 								).collect::<Vec<_>>()
 							}
-							None => Vec::new()
+							_ => {
+								let no_tickets_view = view! {
+									<tr>
+										<td colspan={1} class="dashboard_ticket_list_no_tickets">
+											"No open tickets"
+										</td>
+									</tr>
+								}.into_any();
+								vec![no_tickets_view]
+							}
 						}
 					}
 				</tbody>
