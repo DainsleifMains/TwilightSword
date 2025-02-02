@@ -336,6 +336,8 @@ async fn set_category(
 		.components(Some(&updated_components))
 		.into_future();
 
+	drop(state);
+
 	let (acknowledge_result, update_result) = tokio::join!(acknowledge_future, update_future);
 	acknowledge_result.into_diagnostic()?;
 	update_result.into_diagnostic()?;
