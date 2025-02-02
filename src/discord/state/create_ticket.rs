@@ -8,7 +8,7 @@ use crate::model::Guild;
 use std::collections::HashMap;
 use twilight_model::channel::message::component::{ActionRow, Button, ButtonStyle, Component};
 
-#[derive(Debug)]
+#[derive(Clone, Copy, Debug)]
 pub enum BuiltInCategory {
 	BanAppeal,
 	NewPartner,
@@ -27,7 +27,7 @@ impl BuiltInCategory {
 		}
 	}
 
-	pub fn to_id(&self) -> &'static str {
+	pub fn as_id(&self) -> &'static str {
 		match self {
 			Self::BanAppeal => "1",
 			Self::NewPartner => "2",

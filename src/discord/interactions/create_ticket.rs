@@ -18,7 +18,7 @@ use tokio::time::sleep;
 use twilight_http::client::Client;
 use twilight_model::application::interaction::message_component::MessageComponentInteractionData;
 use twilight_model::channel::message::component::{
-	ActionRow, Button, ButtonStyle, Component, SelectMenu, SelectMenuOption, SelectMenuType,
+	ActionRow, Button, ButtonStyle, Component, SelectMenu, SelectMenuOption, SelectMenuType, TextInput, TextInputStyle,
 };
 use twilight_model::channel::message::MessageFlags;
 use twilight_model::gateway::payload::incoming::InteractionCreate;
@@ -45,6 +45,7 @@ pub async fn route_create_ticket_interaction(
 	};
 
 	match action.as_str() {
+		"confirm_category" => confirm_category(interaction, id, http_client, application_id, bot_state).await?,
 		"set_category" => {
 			set_category(
 				interaction,
@@ -196,7 +197,7 @@ fn selectable_categories_for_guild(
 		if !built_in_category.user_can_submit() || !built_in_category.is_enabled_for_guild(guild) {
 			continue;
 		}
-		let category_id = format!("default/{}", built_in_category.to_id());
+		let category_id = format!("default/{}", built_in_category.as_id());
 		let category_name = built_in_category.name().to_string();
 		available_ticket_categories.push((category_id, category_name));
 	}
@@ -341,6 +342,94 @@ async fn set_category(
 	let (acknowledge_result, update_result) = tokio::join!(acknowledge_future, update_future);
 	acknowledge_result.into_diagnostic()?;
 	update_result.into_diagnostic()?;
+
+	Ok(())
+}
+
+async fn confirm_category(
+	interaction: &InteractionCreate,
+	create_id: &str,
+	http_client: &Client,
+	application_id: Id<ApplicationMarker>,
+	bot_state: Arc<RwLock<TypeMap>>,
+) -> miette::Result<()> {
+	let selected_built_in_category = {
+		let state = bot_state.read().await;
+		let Some(create_ticket_states) = state.get::<CreateTicketStates>() else {
+			bail!("Confirming category when no ticket creation states have been created.");
+		};
+		let Some(create_ticket_state) = create_ticket_states.states.get(create_id) else {
+			// In this situation, the most likely situation is that the original token expired as this message came in.
+			// This is benign and the expiration process should notify the user.
+			return Ok(());
+		};
+		create_ticket_state.built_in_category
+	};
+
+	let interaction_client = http_client.interaction(application_id);
+
+	let mut components: Vec<Component> = Vec::new();
+	if let Some(BuiltInCategory::NewPartner) = selected_built_in_category {
+		let invite_input = Component::TextInput(TextInput {
+			custom_id: String::from("invite_url"),
+			label: String::from("Server invite URL"),
+			max_length: None,
+			min_length: Some(10),
+			placeholder: Some(String::from("Invite URL")),
+			required: Some(true),
+			style: TextInputStyle::Short,
+			value: None,
+		});
+		let invite_row = Component::ActionRow(ActionRow {
+			components: vec![invite_input],
+		});
+		components.push(invite_row);
+	}
+
+	let title_input = Component::TextInput(TextInput {
+		custom_id: String::from("title"),
+		label: String::from("Ticket Title"),
+		max_length: None,
+		min_length: None,
+		placeholder: Some(String::from("Title")),
+		required: Some(true),
+		style: TextInputStyle::Short,
+		value: None,
+	});
+	let title_row = Component::ActionRow(ActionRow {
+		components: vec![title_input],
+	});
+	components.push(title_row);
+
+	let body_input = Component::TextInput(TextInput {
+		custom_id: String::from("body"),
+		label: String::from("Message"),
+		max_length: None,
+		min_length: None,
+		placeholder: None,
+		required: Some(true),
+		style: TextInputStyle::Paragraph,
+		value: None,
+	});
+	let body_row = Component::ActionRow(ActionRow {
+		components: vec![body_input],
+	});
+	components.push(body_row);
+
+	let modal_id = format!("create_ticket/{}/message_modal", create_id);
+	let response = InteractionResponseDataBuilder::new()
+		.custom_id(modal_id)
+		.title("Create Ticket")
+		.components(components)
+		.build();
+	let response = InteractionResponse {
+		kind: InteractionResponseType::Modal,
+		data: Some(response),
+	};
+	interaction_client
+		.create_response(interaction.id, &interaction.token, &response)
+		.await
+		.into_diagnostic()?;
 
 	Ok(())
 }
