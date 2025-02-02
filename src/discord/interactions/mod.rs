@@ -18,6 +18,7 @@ use twilight_model::id::marker::ApplicationMarker;
 use twilight_model::id::Id;
 use type_map::concurrent::TypeMap;
 
+mod create_ticket;
 mod settings;
 mod setup;
 
@@ -31,6 +32,11 @@ pub async fn route_interaction(
 	db_connection_pool: Pool<ConnectionManager<PgConnection>>,
 	bot_state: Arc<RwLock<TypeMap>>,
 ) -> miette::Result<()> {
+	if interaction_data.custom_id.as_str() == "create_ticket" {
+		return create_ticket::create_ticket(interaction, http_client, application_id, db_connection_pool, bot_state)
+			.await;
+	}
+
 	let custom_id_path: Vec<String> = interaction_data.custom_id.split('/').map(|s| s.to_string()).collect();
 
 	match custom_id_path.first().map(|s| s.as_str()) {
