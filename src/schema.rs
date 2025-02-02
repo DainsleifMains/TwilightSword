@@ -116,6 +116,7 @@ diesel::table! {
 		title -> Text,
 		built_in_category -> Nullable<BuiltInTicketCategory>,
 		custom_category -> Nullable<Text>,
+		is_open -> Bool,
 	}
 }
 

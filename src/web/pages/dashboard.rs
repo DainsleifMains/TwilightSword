@@ -93,7 +93,12 @@ async fn get_user_tickets(guild_id: Option<u64>) -> Result<Vec<TicketMetadata>, 
 	let mut db_connection = state.db_connection_pool.get()?;
 
 	let user_tickets: Vec<Ticket> = tickets::table
-		.filter(tickets::guild.eq(db_guild_id).and(tickets::with_user.eq(db_user_id)))
+		.filter(
+			tickets::guild
+				.eq(db_guild_id)
+				.and(tickets::with_user.eq(db_user_id))
+				.and(tickets::is_open.eq(true)),
+		)
 		.load(&mut db_connection)?;
 
 	let mut tickets: Vec<TicketMetadata> = Vec::with_capacity(user_tickets.len());

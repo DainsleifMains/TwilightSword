@@ -270,6 +270,8 @@ pub struct Ticket {
 	pub built_in_category: Option<BuiltInTicketCategory>,
 	/// If the ticket is using a custom category, the ID of the custom category
 	pub custom_category: Option<String>,
+	/// Whether the ticket is currently open
+	pub is_open: bool,
 }
 
 impl Ticket {
