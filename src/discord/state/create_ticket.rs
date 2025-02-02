@@ -6,6 +6,7 @@
 
 use crate::model::Guild;
 use std::collections::HashMap;
+use twilight_model::channel::message::component::{ActionRow, Button, ButtonStyle, Component};
 
 #[derive(Debug)]
 pub enum BuiltInCategory {
@@ -92,4 +93,20 @@ impl CreateTicketState {
 	pub fn has_category(&self) -> bool {
 		self.built_in_category.is_some() || self.custom_category_id.is_some()
 	}
+}
+
+pub fn new_ticket_button() -> Component {
+	let create_button_id = String::from("create_ticket//start");
+	let create_button = Button {
+		custom_id: Some(create_button_id),
+		disabled: false,
+		emoji: None,
+		label: Some(String::from("Create Ticket")),
+		style: ButtonStyle::Primary,
+		url: None,
+		sku_id: None,
+	};
+	Component::ActionRow(ActionRow {
+		components: vec![Component::Button(create_button)],
+	})
 }
