@@ -15,6 +15,7 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 use tokio::time::sleep;
 use twilight_http::client::Client;
+use twilight_model::application::interaction::message_component::MessageComponentInteractionData;
 use twilight_model::channel::message::component::{
 	ActionRow, Button, ButtonStyle, Component, SelectMenu, SelectMenuOption, SelectMenuType,
 };
@@ -26,7 +27,37 @@ use twilight_model::id::Id;
 use twilight_util::builder::InteractionResponseDataBuilder;
 use type_map::concurrent::TypeMap;
 
-pub async fn create_ticket(
+pub async fn route_create_ticket_interaction(
+	interaction: &InteractionCreate,
+	interaction_data: &MessageComponentInteractionData,
+	custom_id_path: &[String],
+	http_client: &Arc<Client>,
+	application_id: Id<ApplicationMarker>,
+	db_connection_pool: Pool<ConnectionManager<PgConnection>>,
+	bot_state: Arc<RwLock<TypeMap>>,
+) -> miette::Result<()> {
+	let Some(id) = custom_id_path.get(1) else {
+		bail!("Invalid custom ID for ticket creation (parts: {:?})", custom_id_path);
+	};
+	let Some(action) = custom_id_path.get(2) else {
+		bail!("Invalid custom ID for ticket creation (parts: {:?}", custom_id_path);
+	};
+
+	if id.is_empty() {
+		return match action.as_str() {
+			"start" => create_ticket(interaction, http_client, application_id, db_connection_pool, bot_state).await,
+			_ => bail!(
+				"Invalid action for ticket creation: {} (custom ID parts: {:?})",
+				action,
+				custom_id_path
+			),
+		};
+	}
+
+	Ok(())
+}
+
+async fn create_ticket(
 	interaction: &InteractionCreate,
 	http_client: &Arc<Client>,
 	application_id: Id<ApplicationMarker>,

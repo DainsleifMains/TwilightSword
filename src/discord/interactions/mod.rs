@@ -32,14 +32,21 @@ pub async fn route_interaction(
 	db_connection_pool: Pool<ConnectionManager<PgConnection>>,
 	bot_state: Arc<RwLock<TypeMap>>,
 ) -> miette::Result<()> {
-	if interaction_data.custom_id.as_str() == "create_ticket" {
-		return create_ticket::create_ticket(interaction, http_client, application_id, db_connection_pool, bot_state)
-			.await;
-	}
-
 	let custom_id_path: Vec<String> = interaction_data.custom_id.split('/').map(|s| s.to_string()).collect();
 
 	match custom_id_path.first().map(|s| s.as_str()) {
+		Some("create_ticket") => {
+			create_ticket::route_create_ticket_interaction(
+				interaction,
+				interaction_data,
+				&custom_id_path,
+				http_client,
+				application_id,
+				db_connection_pool,
+				bot_state,
+			)
+			.await
+		}
 		Some("setup") => {
 			setup::route_setup_interaction(
 				interaction,

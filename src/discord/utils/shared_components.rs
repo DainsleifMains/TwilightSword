@@ -7,7 +7,7 @@
 use twilight_model::channel::message::component::{ActionRow, Button, ButtonStyle, Component};
 
 pub fn new_ticket_button() -> Component {
-	let create_button_id = String::from("create_ticket");
+	let create_button_id = String::from("create_ticket//start");
 	let create_button = Button {
 		custom_id: Some(create_button_id),
 		disabled: false,
