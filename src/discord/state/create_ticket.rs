@@ -5,7 +5,9 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use crate::model::Guild;
+use std::collections::HashMap;
 
+#[derive(Debug)]
 pub enum BuiltInCategory {
 	BanAppeal,
 	NewPartner,
@@ -62,5 +64,32 @@ impl BuiltInCategory {
 			Self::ExistingPartner => guild.existing_partner_ticket_channel.is_some(),
 			Self::MessageReport => guild.message_reports_channel.is_some(),
 		}
+	}
+}
+
+#[derive(Debug, Default)]
+pub struct CreateTicketStates {
+	pub states: HashMap<String, CreateTicketState>,
+}
+
+#[derive(Debug)]
+pub struct CreateTicketState {
+	pub built_in_category: Option<BuiltInCategory>,
+	pub custom_category_id: Option<String>,
+	pub initial_message_token: String,
+}
+
+impl CreateTicketState {
+	pub fn new(initial_message_token: &str) -> Self {
+		let initial_message_token = initial_message_token.to_string();
+		Self {
+			built_in_category: None,
+			custom_category_id: None,
+			initial_message_token,
+		}
+	}
+
+	pub fn has_category(&self) -> bool {
+		self.built_in_category.is_some() || self.custom_category_id.is_some()
 	}
 }

@@ -4,7 +4,8 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-use crate::discord::state::create_ticket::BuiltInCategory;
+use crate::discord::interactions::MAX_INTERACTION_WAIT_TIME;
+use crate::discord::state::create_ticket::{BuiltInCategory, CreateTicketState, CreateTicketStates};
 use crate::model::{database_id_from_discord_id, CustomCategory, Guild, Ticket};
 use crate::schema::{custom_categories, guilds, tickets};
 use diesel::prelude::*;
@@ -12,6 +13,7 @@ use diesel::r2d2::{ConnectionManager, Pool};
 use miette::{bail, IntoDiagnostic};
 use std::sync::Arc;
 use tokio::sync::RwLock;
+use tokio::time::sleep;
 use twilight_http::client::Client;
 use twilight_model::channel::message::component::{
 	ActionRow, Button, ButtonStyle, Component, SelectMenu, SelectMenuOption, SelectMenuType,
@@ -26,7 +28,7 @@ use type_map::concurrent::TypeMap;
 
 pub async fn create_ticket(
 	interaction: &InteractionCreate,
-	http_client: &Client,
+	http_client: &Arc<Client>,
 	application_id: Id<ApplicationMarker>,
 	db_connection_pool: Pool<ConnectionManager<PgConnection>>,
 	bot_state: Arc<RwLock<TypeMap>>,
@@ -61,6 +63,7 @@ pub async fn create_ticket(
 		return Ok(());
 	};
 
+	let create_ticket_instance_id = cuid2::create_id();
 	let mut available_ticket_categories: Vec<(String, String)> = Vec::new();
 
 	for built_in_category in BuiltInCategory::all_categories() {
@@ -92,7 +95,7 @@ pub async fn create_ticket(
 		.collect();
 	let category_select_menu = SelectMenu {
 		channel_types: None,
-		custom_id: String::from("ticket_category"),
+		custom_id: format!("create_ticket/{}/set_category", create_ticket_instance_id),
 		default_values: None,
 		disabled: false,
 		kind: SelectMenuType::Text,
@@ -103,7 +106,7 @@ pub async fn create_ticket(
 	};
 	let category_select = Component::SelectMenu(category_select_menu);
 	let create_button = Button {
-		custom_id: Some(String::from("create_ticket/create")),
+		custom_id: Some(format!("create_ticket/{}/confirm_category", create_ticket_instance_id)),
 		disabled: true,
 		emoji: None,
 		label: Some(String::from("Create Ticket")),
@@ -120,6 +123,23 @@ pub async fn create_ticket(
 		components: vec![create_button],
 	});
 
+	{
+		let mut state = bot_state.write().await;
+		let create_ticket_states = state
+			.entry::<CreateTicketStates>()
+			.or_insert_with(CreateTicketStates::default);
+		let create_ticket_state = CreateTicketState::new(&interaction.token);
+		create_ticket_states
+			.states
+			.insert(create_ticket_instance_id.clone(), create_ticket_state);
+	}
+	tokio::spawn(expire_create(
+		Arc::clone(http_client),
+		application_id,
+		bot_state,
+		create_ticket_instance_id.clone(),
+	));
+
 	let response = InteractionResponseDataBuilder::new()
 		.content("Select what type of ticket this is:")
 		.components(vec![category_select_row, create_button_row])
@@ -135,4 +155,27 @@ pub async fn create_ticket(
 		.into_diagnostic()?;
 
 	Ok(())
+}
+
+async fn expire_create(
+	http_client: Arc<Client>,
+	application_id: Id<ApplicationMarker>,
+	bot_state: Arc<RwLock<TypeMap>>,
+	create_id: String,
+) {
+	sleep(MAX_INTERACTION_WAIT_TIME).await;
+	let mut state = bot_state.write().await;
+	let Some(create_ticket_states) = state.get_mut::<CreateTicketStates>() else {
+		return;
+	};
+	let Some(create_ticket_state) = create_ticket_states.states.remove(&create_id) else {
+		return;
+	};
+
+	let interaction_client = http_client.interaction(application_id);
+	let _ = interaction_client
+		.update_response(&create_ticket_state.initial_message_token)
+		.content(Some("Ticket creation timed out."))
+		.components(None)
+		.await;
 }
