@@ -78,6 +78,18 @@ pub async fn route_modal_submit(
 	let custom_id_path: Vec<String> = modal_data.custom_id.split('/').map(|s| s.to_string()).collect();
 
 	match custom_id_path.first().map(|s| s.as_str()) {
+		Some("create_ticket") => {
+			create_ticket::route_create_ticket_modal(
+				interaction,
+				modal_data,
+				&custom_id_path,
+				http_client,
+				application_id,
+				db_connection_pool,
+				bot_state,
+			)
+			.await
+		}
 		Some("settings") => {
 			settings::route_settings_modal(
 				interaction,

@@ -4,7 +4,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-use crate::model::Guild;
+use crate::model::{BuiltInTicketCategory, Guild};
 use std::collections::HashMap;
 use twilight_model::channel::message::component::{ActionRow, Button, ButtonStyle, Component};
 
@@ -45,8 +45,8 @@ impl BuiltInCategory {
 		]
 	}
 
-	pub fn user_can_submit(&self) -> bool {
-		matches!(self, Self::BanAppeal | Self::NewPartner | Self::ExistingPartner)
+	pub fn user_can_submit_from_server(&self) -> bool {
+		matches!(self, Self::NewPartner | Self::ExistingPartner)
 	}
 
 	pub fn name(&self) -> &'static str {
@@ -64,6 +64,15 @@ impl BuiltInCategory {
 			Self::NewPartner => guild.new_partner_ticket_channel.is_some(),
 			Self::ExistingPartner => guild.existing_partner_ticket_channel.is_some(),
 			Self::MessageReport => guild.message_reports_channel.is_some(),
+		}
+	}
+
+	pub fn to_database(self) -> BuiltInTicketCategory {
+		match self {
+			Self::BanAppeal => BuiltInTicketCategory::BanAppeal,
+			Self::NewPartner => BuiltInTicketCategory::NewPartner,
+			Self::ExistingPartner => BuiltInTicketCategory::ExistingPartner,
+			Self::MessageReport => BuiltInTicketCategory::MessageReport,
 		}
 	}
 }
@@ -88,10 +97,6 @@ impl CreateTicketState {
 			custom_category_id: None,
 			initial_message_token,
 		}
-	}
-
-	pub fn has_category(&self) -> bool {
-		self.built_in_category.is_some() || self.custom_category_id.is_some()
 	}
 }
 

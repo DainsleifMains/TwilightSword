@@ -16,11 +16,13 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 use tokio::time::sleep;
 use twilight_http::client::Client;
+use twilight_mention::fmt::Mention;
 use twilight_model::application::interaction::message_component::MessageComponentInteractionData;
+use twilight_model::application::interaction::modal::ModalInteractionData;
 use twilight_model::channel::message::component::{
 	ActionRow, Button, ButtonStyle, Component, SelectMenu, SelectMenuOption, SelectMenuType, TextInput, TextInputStyle,
 };
-use twilight_model::channel::message::MessageFlags;
+use twilight_model::channel::message::{AllowedMentions, MessageFlags};
 use twilight_model::gateway::payload::incoming::InteractionCreate;
 use twilight_model::http::interaction::{InteractionResponse, InteractionResponseType};
 use twilight_model::id::marker::ApplicationMarker;
@@ -45,7 +47,17 @@ pub async fn route_create_ticket_interaction(
 	};
 
 	match action.as_str() {
-		"confirm_category" => confirm_category(interaction, id, http_client, application_id, bot_state).await?,
+		"confirm_category" => {
+			confirm_category(
+				interaction,
+				id,
+				http_client,
+				application_id,
+				db_connection_pool,
+				bot_state,
+			)
+			.await?
+		}
 		"set_category" => {
 			set_category(
 				interaction,
@@ -67,6 +79,44 @@ pub async fn route_create_ticket_interaction(
 			action,
 			custom_id_path
 		),
+	}
+
+	Ok(())
+}
+
+pub async fn route_create_ticket_modal(
+	interaction: &InteractionCreate,
+	modal_data: &ModalInteractionData,
+	custom_id_path: &[String],
+	http_client: &Client,
+	application_id: Id<ApplicationMarker>,
+	db_connection_pool: Pool<ConnectionManager<PgConnection>>,
+	bot_state: Arc<RwLock<TypeMap>>,
+) -> miette::Result<()> {
+	let Some(id) = custom_id_path.get(1) else {
+		bail!("Invalid custom ID for ticket creation (parts: {:?})", custom_id_path);
+	};
+	let Some(action) = custom_id_path.get(2) else {
+		bail!("Invalid custom ID for ticket creation (parts: {:?})", custom_id_path);
+	};
+
+	if action == "message" {
+		handle_message_modal_data(
+			interaction,
+			modal_data,
+			id,
+			http_client,
+			application_id,
+			db_connection_pool,
+			bot_state,
+		)
+		.await?;
+	} else {
+		bail!(
+			"Invalid action for ticket creation: {} (custom ID parts: {:?})",
+			action,
+			custom_id_path
+		);
 	}
 
 	Ok(())
@@ -194,7 +244,7 @@ fn selectable_categories_for_guild(
 	let mut available_ticket_categories: Vec<(String, String)> = Vec::new();
 
 	for built_in_category in BuiltInCategory::all_categories() {
-		if !built_in_category.user_can_submit() || !built_in_category.is_enabled_for_guild(guild) {
+		if !built_in_category.user_can_submit_from_server() || !built_in_category.is_enabled_for_guild(guild) {
 			continue;
 		}
 		let category_id = format!("default/{}", built_in_category.as_id());
@@ -351,9 +401,10 @@ async fn confirm_category(
 	create_id: &str,
 	http_client: &Client,
 	application_id: Id<ApplicationMarker>,
+	db_connection_pool: Pool<ConnectionManager<PgConnection>>,
 	bot_state: Arc<RwLock<TypeMap>>,
 ) -> miette::Result<()> {
-	let selected_built_in_category = {
+	let (selected_built_in_category, selected_custom_category) = {
 		let state = bot_state.read().await;
 		let Some(create_ticket_states) = state.get::<CreateTicketStates>() else {
 			bail!("Confirming category when no ticket creation states have been created.");
@@ -363,7 +414,23 @@ async fn confirm_category(
 			// This is benign and the expiration process should notify the user.
 			return Ok(());
 		};
-		create_ticket_state.built_in_category
+		(
+			create_ticket_state.built_in_category,
+			create_ticket_state.custom_category_id.clone(),
+		)
+	};
+
+	let category_name = match (selected_built_in_category, selected_custom_category) {
+		(Some(category), _) => category.name().to_string(),
+		(_, Some(category_id)) => {
+			let mut db_connection = db_connection_pool.get().into_diagnostic()?;
+			let category: CustomCategory = custom_categories::table
+				.find(&category_id)
+				.first(&mut db_connection)
+				.into_diagnostic()?;
+			category.name
+		}
+		_ => String::new(),
 	};
 
 	let interaction_client = http_client.interaction(application_id);
@@ -416,14 +483,220 @@ async fn confirm_category(
 	});
 	components.push(body_row);
 
-	let modal_id = format!("create_ticket/{}/message_modal", create_id);
+	let modal_id = format!("create_ticket/{}/message", create_id);
 	let response = InteractionResponseDataBuilder::new()
 		.custom_id(modal_id)
-		.title("Create Ticket")
+		.title(format!("Create Ticket - {}", category_name))
 		.components(components)
 		.build();
 	let response = InteractionResponse {
 		kind: InteractionResponseType::Modal,
+		data: Some(response),
+	};
+	interaction_client
+		.create_response(interaction.id, &interaction.token, &response)
+		.await
+		.into_diagnostic()?;
+
+	Ok(())
+}
+
+async fn handle_message_modal_data(
+	interaction: &InteractionCreate,
+	modal_data: &ModalInteractionData,
+	create_id: &str,
+	http_client: &Client,
+	application_id: Id<ApplicationMarker>,
+	db_connection_pool: Pool<ConnectionManager<PgConnection>>,
+	bot_state: Arc<RwLock<TypeMap>>,
+) -> miette::Result<()> {
+	let mut invite_url: Option<String> = None;
+	let mut ticket_title: Option<String> = None;
+	let mut ticket_message: Option<String> = None;
+
+	for row in modal_data.components.iter() {
+		for component in row.components.iter() {
+			match component.custom_id.as_str() {
+				"invite_url" => invite_url = component.value.clone(),
+				"title" => ticket_title = component.value.clone(),
+				"body" => ticket_message = component.value.clone(),
+				_ => (),
+			}
+		}
+	}
+
+	let interaction_client = http_client.interaction(application_id);
+	let (Some(ticket_title), Some(ticket_message)) = (ticket_title, ticket_message) else {
+		let response = InteractionResponseDataBuilder::new()
+			.content("Ticket not sent: missing required data.")
+			.components(Vec::new())
+			.build();
+		let response = InteractionResponse {
+			kind: InteractionResponseType::UpdateMessage,
+			data: Some(response),
+		};
+		interaction_client
+			.create_response(interaction.id, &interaction.token, &response)
+			.await
+			.into_diagnostic()?;
+		return Ok(());
+	};
+
+	let create_ticket_state = {
+		let mut state = bot_state.write().await;
+		let Some(create_ticket_states) = state.get_mut::<CreateTicketStates>() else {
+			bail!("Confirming ticket creation with no ticket creation state data");
+		};
+		let Some(create_ticket_state) = create_ticket_states.states.remove(create_id) else {
+			let message_content = format!("Failed to get ticket submission state; your ticket entry may have expired. Please try again.\nIf you need it, here's the data you entered:\n\n**Title**: {}\n**Message**:\n{}", ticket_title, ticket_message);
+			let response = InteractionResponseDataBuilder::new()
+				.content(message_content)
+				.components(Vec::new())
+				.build();
+			let response = InteractionResponse {
+				kind: InteractionResponseType::UpdateMessage,
+				data: Some(response),
+			};
+			interaction_client
+				.create_response(interaction.id, &interaction.token, &response)
+				.await
+				.into_diagnostic()?;
+			return Ok(());
+		};
+		create_ticket_state
+	};
+
+	let ticket_message = if let Some(BuiltInCategory::NewPartner) = create_ticket_state.built_in_category {
+		let Some(invite_url) = &invite_url else {
+			bail!("Invite URL not entered on new partner ticket");
+		};
+		format!("**Partner invite URL**: {}\n\n{}", invite_url, ticket_message)
+	} else {
+		ticket_message
+	};
+
+	let Some(guild_id) = interaction.guild_id else {
+		bail!("Create ticket workflow moved outside of a guild");
+	};
+	let db_guild_id = database_id_from_discord_id(guild_id.get());
+	let Some(interaction_member) = &interaction.member else {
+		bail!("Interaction isn't from a user");
+	};
+	let Some(interaction_user) = &interaction_member.user else {
+		bail!("Guild member doesn't have a user");
+	};
+	let db_user_id = database_id_from_discord_id(interaction_user.id.get());
+	let new_ticket = Ticket {
+		id: create_id.to_string(),
+		guild: db_guild_id,
+		with_user: db_user_id,
+		title: ticket_title.clone(),
+		built_in_category: create_ticket_state
+			.built_in_category
+			.map(|category| category.to_database()),
+		custom_category: create_ticket_state.custom_category_id.clone(),
+		is_open: true,
+	};
+
+	let mut db_connection = db_connection_pool.get().into_diagnostic()?;
+	let guild_data: Option<Guild> = guilds::table
+		.find(db_guild_id)
+		.first(&mut db_connection)
+		.optional()
+		.into_diagnostic()?;
+	let Some(guild_data) = guild_data else {
+		let response = InteractionResponseDataBuilder::new()
+			.content("This server is not set up and cannot accept tickets.")
+			.components(Vec::new())
+			.build();
+		let response = InteractionResponse {
+			kind: InteractionResponseType::UpdateMessage,
+			data: Some(response),
+		};
+		interaction_client
+			.create_response(interaction.id, &interaction.token, &response)
+			.await
+			.into_diagnostic()?;
+		return Ok(());
+	};
+
+	let ticket_thread_message_content = if let Some(invite_url) = &invite_url {
+		format!(
+			"**Author**: {}\n**Invite URL**: {}\n\n{}",
+			interaction_user.mention(),
+			invite_url,
+			ticket_message
+		)
+	} else {
+		format!("**Author**: {}\n\n{}", interaction_user.mention(), ticket_message)
+	};
+
+	let channel_id = match (
+		create_ticket_state.built_in_category,
+		create_ticket_state.custom_category_id,
+	) {
+		(Some(BuiltInCategory::NewPartner), _) => guild_data.get_new_partner_ticket_channel(),
+		(Some(BuiltInCategory::ExistingPartner), _) => guild_data.get_existing_partner_ticket_channel(),
+		(_, Some(custom_category)) => {
+			let custom_category: CustomCategory = custom_categories::table
+				.find(&custom_category)
+				.first(&mut db_connection)
+				.into_diagnostic()?;
+			Some(custom_category.get_channel())
+		}
+		_ => bail!("Invalid category selection for new ticket creation"),
+	};
+
+	let Some(channel_id) = channel_id else {
+		let response = InteractionResponseDataBuilder::new()
+			.content("The server is no longer accepting tickets of that category.")
+			.components(Vec::new())
+			.build();
+		let response = InteractionResponse {
+			kind: InteractionResponseType::UpdateMessage,
+			data: Some(response),
+		};
+		interaction_client
+			.create_response(interaction.id, &interaction.token, &response)
+			.await
+			.into_diagnostic()?;
+		return Ok(());
+	};
+
+	let ticket_thread_result = http_client
+		.create_forum_thread(channel_id, &ticket_title)
+		.message()
+		.content(&ticket_thread_message_content)
+		.allowed_mentions(Some(&AllowedMentions::default()))
+		.await;
+	if ticket_thread_result.is_err() {
+		let response_content = format!("This ticket couldn't be sent. In case you want it later, here's what you sent:\n**Title**: {}\n**Message**\n{}", ticket_title, ticket_message);
+		let response = InteractionResponseDataBuilder::new()
+			.content(response_content)
+			.components(Vec::new())
+			.build();
+		let response = InteractionResponse {
+			kind: InteractionResponseType::UpdateMessage,
+			data: Some(response),
+		};
+		interaction_client
+			.create_response(interaction.id, &interaction.token, &response)
+			.await
+			.into_diagnostic()?;
+		return Ok(());
+	}
+
+	diesel::insert_into(tickets::table)
+		.values(new_ticket)
+		.execute(&mut db_connection)
+		.into_diagnostic()?;
+
+	let response = InteractionResponseDataBuilder::new()
+		.content("Ticket submitted!")
+		.components(Vec::new())
+		.build();
+	let response = InteractionResponse {
+		kind: InteractionResponseType::UpdateMessage,
 		data: Some(response),
 	};
 	interaction_client
