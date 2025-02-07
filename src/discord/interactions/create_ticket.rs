@@ -5,6 +5,7 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use crate::discord::state::create_ticket::{BuiltInCategory, CreateTicketState, CreateTicketStates};
+use crate::discord::utils::invites::invite_code_from_url;
 use crate::model::{database_id_from_discord_id, CustomCategory, Guild, Ticket};
 use crate::schema::{custom_categories, guilds, tickets};
 use diesel::prelude::*;
@@ -14,6 +15,8 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 use tokio::time::{sleep, Duration};
 use twilight_http::client::Client;
+use twilight_http::error::ErrorType;
+use twilight_http::response::StatusCode;
 use twilight_mention::fmt::Mention;
 use twilight_model::application::interaction::message_component::MessageComponentInteractionData;
 use twilight_model::application::interaction::modal::ModalInteractionData;
@@ -501,6 +504,13 @@ async fn confirm_category(
 	Ok(())
 }
 
+fn try_again_text(ticket_title: &str, ticket_message: &str) -> String {
+	format!(
+		"If you wish to try again, here's the data you submitted:\n\n**Title**: {}\n**Message**:\n{}",
+		ticket_title, ticket_message
+	)
+}
+
 async fn handle_message_modal_data(
 	interaction: &InteractionCreate,
 	modal_data: &ModalInteractionData,
@@ -548,7 +558,10 @@ async fn handle_message_modal_data(
 			bail!("Confirming ticket creation with no ticket creation state data");
 		};
 		let Some(create_ticket_state) = create_ticket_states.states.remove(create_id) else {
-			let message_content = format!("Ticket creation expired. Please try again.\nIf you need it, here's the data you entered:\n\n**Title**: {}\n**Message**:\n{}", ticket_title, ticket_message);
+			let message_content = format!(
+				"Ticket creation expired.\n{}",
+				try_again_text(&ticket_title, &ticket_message)
+			);
 			let response = InteractionResponseDataBuilder::new()
 				.content(message_content)
 				.components(Vec::new())
@@ -566,13 +579,106 @@ async fn handle_message_modal_data(
 		create_ticket_state
 	};
 
-	let ticket_message = if let Some(BuiltInCategory::NewPartner) = create_ticket_state.built_in_category {
-		let Some(invite_url) = &invite_url else {
-			bail!("Invite URL not entered on new partner ticket");
-		};
-		format!("**Partner invite URL**: {}\n\n{}", invite_url, ticket_message)
-	} else {
-		ticket_message
+	let (ticket_message, invite_data) = match create_ticket_state.built_in_category {
+		Some(BuiltInCategory::NewPartner) => {
+			let Some(invite_url) = &invite_url else {
+				bail!("Invite URL not entered on new partner ticket");
+			};
+
+			let Some(invite_code) = invite_code_from_url(invite_url) else {
+				let response_message = format!(
+					"The invite URL you provided is not a valid invite.\n{}",
+					try_again_text(&ticket_title, &ticket_message)
+				);
+				let response = InteractionResponseDataBuilder::new()
+					.content(response_message)
+					.components(Vec::new())
+					.build();
+				let response = InteractionResponse {
+					kind: InteractionResponseType::UpdateMessage,
+					data: Some(response),
+				};
+				interaction_client
+					.create_response(interaction.id, &interaction.token, &response)
+					.await
+					.into_diagnostic()?;
+				return Ok(());
+			};
+
+			let invite_data = http_client.invite(&invite_code).with_expiration().await;
+			if let Err(invite_error) = &invite_data {
+				if let ErrorType::Response {
+					status: StatusCode::NOT_FOUND,
+					..
+				} = invite_error.kind()
+				{
+					let response_message = format!(
+						"Discord doesn't recognize that invite code.\n{}",
+						try_again_text(&ticket_title, &ticket_message)
+					);
+					let response = InteractionResponseDataBuilder::new()
+						.content(response_message)
+						.components(Vec::new())
+						.build();
+					let response = InteractionResponse {
+						kind: InteractionResponseType::UpdateMessage,
+						data: Some(response),
+					};
+					interaction_client
+						.create_response(interaction.id, &interaction.token, &response)
+						.await
+						.into_diagnostic()?;
+					return Ok(());
+				}
+			}
+			let invite_data = invite_data.into_diagnostic()?;
+			let invite_data = invite_data.model().await.into_diagnostic()?;
+
+			if invite_data.guild.is_none() {
+				let response_message = format!(
+					"The invite you provided isn't for a guild.\n{}",
+					try_again_text(&ticket_title, &ticket_message)
+				);
+				let response = InteractionResponseDataBuilder::new()
+					.content(response_message)
+					.components(Vec::new())
+					.build();
+				let response = InteractionResponse {
+					kind: InteractionResponseType::UpdateMessage,
+					data: Some(response),
+				};
+				interaction_client
+					.create_response(interaction.id, &interaction.token, &response)
+					.await
+					.into_diagnostic()?;
+				return Ok(());
+			}
+			if invite_data.expires_at.is_some() {
+				let response_message = format!(
+					"The invite you provided expires, but partnership invites must be permanent.\n{}",
+					try_again_text(&ticket_title, &ticket_message)
+				);
+				let response = InteractionResponseDataBuilder::new()
+					.content(response_message)
+					.components(Vec::new())
+					.build();
+				let response = InteractionResponse {
+					kind: InteractionResponseType::UpdateMessage,
+					data: Some(response),
+				};
+				interaction_client
+					.create_response(interaction.id, &interaction.token, &response)
+					.await
+					.into_diagnostic()?;
+				return Ok(());
+			}
+
+			(
+				format!("**Partner invite URL**: {}\n\n{}", invite_url, ticket_message),
+				Some(invite_data),
+			)
+		}
+		_ => (ticket_message, None),
 	};
 
 	let Some(guild_id) = interaction.guild_id else {
@@ -620,16 +726,7 @@ async fn handle_message_modal_data(
 		return Ok(());
 	};
 
-	let ticket_thread_message_content = if let Some(invite_url) = &invite_url {
-		format!(
-			"**Author**: {}\n**Invite URL**: {}\n\n{}",
-			interaction_user.mention(),
-			invite_url,
-			ticket_message
-		)
-	} else {
-		format!("**Author**: {}\n\n{}", interaction_user.mention(), ticket_message)
-	};
+	let ticket_thread_message_content = format!("**Author**: {}\n\n{}", interaction_user.mention(), ticket_message);
 
 	let channel_id = match (
 		create_ticket_state.built_in_category,
