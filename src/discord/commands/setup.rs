@@ -4,7 +4,6 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-use crate::discord::interactions::MAX_INTERACTION_WAIT_TIME;
 use crate::discord::state::setup::{set_up_components, SetupInstance, SetupState};
 use crate::model::{database_id_from_discord_id, Guild as DbGuild};
 use crate::schema::guilds;
@@ -13,7 +12,7 @@ use diesel::r2d2::{ConnectionManager, Pool};
 use miette::{bail, IntoDiagnostic};
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use tokio::time::sleep;
+use tokio::time::{sleep, Duration};
 use twilight_http::client::Client;
 use twilight_model::application::command::{Command, CommandType};
 use twilight_model::application::interaction::InteractionContextType;
@@ -93,41 +92,19 @@ pub async fn handle_command(
 	{
 		let mut state = bot_state.write().await;
 		let set_up_state = state.entry::<SetupState>().or_insert_with(SetupState::default);
-		let setup_instance = SetupInstance::new(guild, interaction.token.clone());
+		let setup_instance = SetupInstance::new(guild);
 		set_up_state.states.insert(setup_id.clone(), setup_instance);
 	}
 
-	tokio::spawn(expire_setup(
-		Arc::clone(http_client),
-		application_id,
-		bot_state,
-		setup_id,
-	));
+	tokio::spawn(expire_setup(bot_state, setup_id));
 
 	Ok(())
 }
 
-async fn expire_setup(
-	http_client: Arc<Client>,
-	application_id: Id<ApplicationMarker>,
-	bot_state: Arc<RwLock<TypeMap>>,
-	setup_id: String,
-) {
-	sleep(MAX_INTERACTION_WAIT_TIME).await;
+async fn expire_setup(bot_state: Arc<RwLock<TypeMap>>, setup_id: String) {
+	sleep(Duration::from_secs(3600)).await;
 	let mut state = bot_state.write().await;
-	let Some(set_up_state) = state.get_mut::<SetupState>() else {
-		return;
+	if let Some(set_up_state) = state.get_mut::<SetupState>() {
+		set_up_state.states.remove(&setup_id);
 	};
-	let Some(interaction_state) = set_up_state.states.remove(&setup_id) else {
-		return;
-	};
-
-	let interaction_client = http_client.interaction(application_id);
-	let _ = interaction_client
-		.update_response(&interaction_state.initial_message_token)
-		.content(Some(
-			"Setup timed out. Run `/setup` again to set up Twilight Sword for your server!",
-		))
-		.components(None)
-		.await;
 }

@@ -82,22 +82,10 @@ pub struct CreateTicketStates {
 	pub states: HashMap<String, CreateTicketState>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct CreateTicketState {
 	pub built_in_category: Option<BuiltInCategory>,
 	pub custom_category_id: Option<String>,
-	pub initial_message_token: String,
-}
-
-impl CreateTicketState {
-	pub fn new(initial_message_token: &str) -> Self {
-		let initial_message_token = initial_message_token.to_string();
-		Self {
-			built_in_category: None,
-			custom_category_id: None,
-			initial_message_token,
-		}
-	}
 }
 
 pub fn new_ticket_button() -> Component {

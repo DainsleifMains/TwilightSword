@@ -4,17 +4,15 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-use crate::discord::interactions::MAX_INTERACTION_WAIT_TIME;
 use crate::discord::state::create_ticket::{BuiltInCategory, CreateTicketState, CreateTicketStates};
 use crate::model::{database_id_from_discord_id, CustomCategory, Guild, Ticket};
 use crate::schema::{custom_categories, guilds, tickets};
 use diesel::prelude::*;
 use diesel::r2d2::{ConnectionManager, Pool};
 use miette::{bail, ensure, IntoDiagnostic};
-use std::future::IntoFuture;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use tokio::time::sleep;
+use tokio::time::{sleep, Duration};
 use twilight_http::client::Client;
 use twilight_mention::fmt::Mention;
 use twilight_model::application::interaction::message_component::MessageComponentInteractionData;
@@ -29,6 +27,8 @@ use twilight_model::id::marker::ApplicationMarker;
 use twilight_model::id::Id;
 use twilight_util::builder::InteractionResponseDataBuilder;
 use type_map::concurrent::TypeMap;
+
+const TICKET_CREATION_EXPIRED: &str = "Ticket creation expired.";
 
 pub async fn route_create_ticket_interaction(
 	interaction: &InteractionCreate,
@@ -185,17 +185,12 @@ async fn create_ticket(
 		let create_ticket_states = state
 			.entry::<CreateTicketStates>()
 			.or_insert_with(CreateTicketStates::default);
-		let create_ticket_state = CreateTicketState::new(&interaction.token);
+		let create_ticket_state = CreateTicketState::default();
 		create_ticket_states
 			.states
 			.insert(create_ticket_instance_id.clone(), create_ticket_state);
 	}
-	tokio::spawn(expire_create(
-		Arc::clone(http_client),
-		application_id,
-		bot_state,
-		create_ticket_instance_id.clone(),
-	));
+	tokio::spawn(expire_create(bot_state, create_ticket_instance_id.clone()));
 
 	let response = InteractionResponseDataBuilder::new()
 		.content("Select what type of ticket this is:")
@@ -214,27 +209,12 @@ async fn create_ticket(
 	Ok(())
 }
 
-async fn expire_create(
-	http_client: Arc<Client>,
-	application_id: Id<ApplicationMarker>,
-	bot_state: Arc<RwLock<TypeMap>>,
-	create_id: String,
-) {
-	sleep(MAX_INTERACTION_WAIT_TIME).await;
+async fn expire_create(bot_state: Arc<RwLock<TypeMap>>, create_id: String) {
+	sleep(Duration::from_secs(3600)).await;
 	let mut state = bot_state.write().await;
-	let Some(create_ticket_states) = state.get_mut::<CreateTicketStates>() else {
-		return;
+	if let Some(create_ticket_states) = state.get_mut::<CreateTicketStates>() {
+		create_ticket_states.states.remove(&create_id);
 	};
-	let Some(create_ticket_state) = create_ticket_states.states.remove(&create_id) else {
-		return;
-	};
-
-	let interaction_client = http_client.interaction(application_id);
-	let _ = interaction_client
-		.update_response(&create_ticket_state.initial_message_token)
-		.content(Some("Ticket creation timed out."))
-		.components(None)
-		.await;
 }
 
 fn selectable_categories_for_guild(
@@ -325,11 +305,21 @@ async fn set_category(
 	let Some(create_ticket_states) = state.get_mut::<CreateTicketStates>() else {
 		bail!("Failed to get ticket creation states responding to interaction");
 	};
+	let interaction_client = http_client.interaction(application_id);
 	let Some(create_ticket_state) = create_ticket_states.states.get_mut(create_id) else {
-		bail!(
-			"Failed to get ticket creation state for ID {} responding to interaction",
-			create_id
-		);
+		let response = InteractionResponseDataBuilder::new()
+			.content(TICKET_CREATION_EXPIRED)
+			.components(Vec::new())
+			.build();
+		let response = InteractionResponse {
+			kind: InteractionResponseType::UpdateMessage,
+			data: Some(response),
+		};
+		interaction_client
+			.create_response(interaction.id, &interaction.token, &response)
+			.await
+			.into_diagnostic()?;
+		return Ok(());
 	};
 
 	let Some(category_id) = interaction_data.values.first() else {
@@ -347,14 +337,7 @@ async fn set_category(
 		create_ticket_state.custom_category_id = Some(category_id.clone());
 	}
 
-	let interaction_client = http_client.interaction(application_id);
-	let acknowledge_response = InteractionResponse {
-		kind: InteractionResponseType::DeferredUpdateMessage,
-		data: None,
-	};
-	let acknowledge_future = interaction_client
-		.create_response(interaction.id, &interaction.token, &acknowledge_response)
-		.into_future();
+	drop(state);
 
 	let Some(guild_id) = interaction.guild_id else {
 		bail!("Ticket creation interaction moved outside guild");
@@ -372,26 +355,33 @@ async fn set_category(
 
 	let selectable_categories = selectable_categories_for_guild(&guild, &mut db_connection)?;
 	if selectable_categories.is_empty() {
+		let response = InteractionResponseDataBuilder::new()
+			.content("This server is no longer accepting new tickets.")
+			.components(Vec::new())
+			.build();
+		let response = InteractionResponse {
+			kind: InteractionResponseType::UpdateMessage,
+			data: Some(response),
+		};
 		interaction_client
-			.update_response(&create_ticket_state.initial_message_token)
-			.content(Some("This server is no longer accepting new tickets."))
-			.components(None)
+			.create_response(interaction.id, &interaction.token, &response)
 			.await
 			.into_diagnostic()?;
 		return Ok(());
 	}
 
 	let updated_components = category_select_components(create_id, selectable_categories, false, Some(category_id));
-	let update_future = interaction_client
-		.update_response(&create_ticket_state.initial_message_token)
-		.components(Some(&updated_components))
-		.into_future();
-
-	drop(state);
-
-	let (acknowledge_result, update_result) = tokio::join!(acknowledge_future, update_future);
-	acknowledge_result.into_diagnostic()?;
-	update_result.into_diagnostic()?;
+	let response = InteractionResponseDataBuilder::new()
+		.components(updated_components)
+		.build();
+	let response = InteractionResponse {
+		kind: InteractionResponseType::UpdateMessage,
+		data: Some(response),
+	};
+	interaction_client
+		.create_response(interaction.id, &interaction.token, &response)
+		.await
+		.into_diagnostic()?;
 
 	Ok(())
 }
@@ -404,14 +394,26 @@ async fn confirm_category(
 	db_connection_pool: Pool<ConnectionManager<PgConnection>>,
 	bot_state: Arc<RwLock<TypeMap>>,
 ) -> miette::Result<()> {
+	let interaction_client = http_client.interaction(application_id);
+
 	let (selected_built_in_category, selected_custom_category) = {
 		let state = bot_state.read().await;
 		let Some(create_ticket_states) = state.get::<CreateTicketStates>() else {
 			bail!("Confirming category when no ticket creation states have been created.");
 		};
 		let Some(create_ticket_state) = create_ticket_states.states.get(create_id) else {
-			// In this situation, the most likely situation is that the original token expired as this message came in.
-			// This is benign and the expiration process should notify the user.
+			let response = InteractionResponseDataBuilder::new()
+				.content(TICKET_CREATION_EXPIRED)
+				.components(Vec::new())
+				.build();
+			let response = InteractionResponse {
+				kind: InteractionResponseType::UpdateMessage,
+				data: Some(response),
+			};
+			interaction_client
+				.create_response(interaction.id, &interaction.token, &response)
+				.await
+				.into_diagnostic()?;
 			return Ok(());
 		};
 		(
@@ -432,8 +434,6 @@ async fn confirm_category(
 		}
 		_ => String::new(),
 	};
-
-	let interaction_client = http_client.interaction(application_id);
 
 	let mut components: Vec<Component> = Vec::new();
 	if let Some(BuiltInCategory::NewPartner) = selected_built_in_category {
@@ -548,7 +548,7 @@ async fn handle_message_modal_data(
 			bail!("Confirming ticket creation with no ticket creation state data");
 		};
 		let Some(create_ticket_state) = create_ticket_states.states.remove(create_id) else {
-			let message_content = format!("Failed to get ticket submission state; your ticket entry may have expired. Please try again.\nIf you need it, here's the data you entered:\n\n**Title**: {}\n**Message**:\n{}", ticket_title, ticket_message);
+			let message_content = format!("Ticket creation expired. Please try again.\nIf you need it, here's the data you entered:\n\n**Title**: {}\n**Message**:\n{}", ticket_title, ticket_message);
 			let response = InteractionResponseDataBuilder::new()
 				.content(message_content)
 				.components(Vec::new())

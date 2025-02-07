@@ -21,16 +21,14 @@ pub struct SetupInstance {
 	pub admin_role: Option<Id<RoleMarker>>,
 	pub staff_role: Option<Id<RoleMarker>>,
 	pub guild: Id<GuildMarker>,
-	pub initial_message_token: String,
 }
 
 impl SetupInstance {
-	pub fn new(guild: Id<GuildMarker>, initial_message_token: String) -> Self {
+	pub fn new(guild: Id<GuildMarker>) -> Self {
 		Self {
 			admin_role: None,
 			staff_role: None,
 			guild,
-			initial_message_token,
 		}
 	}
 }

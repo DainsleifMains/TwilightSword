@@ -4,7 +4,6 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-use crate::discord::interactions::MAX_INTERACTION_WAIT_TIME;
 use crate::discord::state::settings::start_ticket_message::StartTicketMessageState;
 use crate::discord::utils::responses::NOT_SET_UP_FOR_GUILD;
 use crate::model::{database_id_from_discord_id, Guild};
@@ -14,7 +13,7 @@ use diesel::r2d2::{ConnectionManager, Pool};
 use miette::{bail, IntoDiagnostic};
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use tokio::time::sleep;
+use tokio::time::{sleep, Duration};
 use twilight_http::client::Client;
 use twilight_model::application::command::CommandOption;
 use twilight_model::channel::message::component::{ActionRow, Component, TextInput, TextInputStyle};
@@ -130,7 +129,7 @@ pub async fn handle_subcommand(
 }
 
 async fn expire_message_edit(bot_state: Arc<RwLock<TypeMap>>, prompt_id: String) {
-	sleep(MAX_INTERACTION_WAIT_TIME).await;
+	sleep(Duration::from_secs(3600)).await;
 	let mut state = bot_state.write().await;
 	let Some(edit_guilds) = state.get_mut::<StartTicketMessageState>() else {
 		return;

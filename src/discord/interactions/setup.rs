@@ -22,6 +22,8 @@ use twilight_model::id::Id;
 use twilight_util::builder::InteractionResponseDataBuilder;
 use type_map::concurrent::TypeMap;
 
+const SETUP_EXPIRED_MESSAGE: &str = "Setup expired. Run `/setup` to set up again.";
+
 pub async fn route_setup_interaction(
 	interaction: &InteractionCreate,
 	interaction_data: &MessageComponentInteractionData,
@@ -89,7 +91,20 @@ async fn handle_admin_role_update(
 	let Some(setup_state) = state.get_mut::<SetupState>() else {
 		return Ok(());
 	};
+	let interaction_client = http_client.interaction(application_id);
 	let Some(interaction_state) = setup_state.states.get_mut(setup_id) else {
+		let response = InteractionResponseDataBuilder::new()
+			.content(SETUP_EXPIRED_MESSAGE)
+			.components(Vec::new())
+			.build();
+		let response = InteractionResponse {
+			kind: InteractionResponseType::UpdateMessage,
+			data: Some(response),
+		};
+		interaction_client
+			.create_response(interaction.id, &interaction.token, &response)
+			.await
+			.into_diagnostic()?;
 		return Ok(());
 	};
 
@@ -103,23 +118,19 @@ async fn handle_admin_role_update(
 	};
 	interaction_state.admin_role = role;
 
-	let acknowledge_response = InteractionResponse {
-		kind: InteractionResponseType::DeferredUpdateMessage,
-		data: None,
-	};
-	let interaction_client = http_client.interaction(application_id);
-	interaction_client
-		.create_response(interaction.id, &interaction.token, &acknowledge_response)
-		.await
-		.into_diagnostic()?;
-
 	let updated_components = set_up_components(
 		setup_id,
 		interaction_state.admin_role.is_none() || interaction_state.staff_role.is_none(),
 	);
+	let response = InteractionResponseDataBuilder::new()
+		.components(updated_components)
+		.build();
+	let response = InteractionResponse {
+		kind: InteractionResponseType::UpdateMessage,
+		data: Some(response),
+	};
 	interaction_client
-		.update_response(&interaction_state.initial_message_token)
-		.components(Some(&updated_components))
+		.create_response(interaction.id, &interaction.token, &response)
 		.await
 		.into_diagnostic()?;
 
@@ -138,7 +149,20 @@ async fn handle_staff_role_update(
 	let Some(setup_state) = state.get_mut::<SetupState>() else {
 		return Ok(());
 	};
+	let interaction_client = http_client.interaction(application_id);
 	let Some(interaction_state) = setup_state.states.get_mut(setup_id) else {
+		let response = InteractionResponseDataBuilder::new()
+			.content(SETUP_EXPIRED_MESSAGE)
+			.components(Vec::new())
+			.build();
+		let response = InteractionResponse {
+			kind: InteractionResponseType::UpdateMessage,
+			data: Some(response),
+		};
+		interaction_client
+			.create_response(interaction.id, &interaction.token, &response)
+			.await
+			.into_diagnostic()?;
 		return Ok(());
 	};
 
@@ -152,23 +176,19 @@ async fn handle_staff_role_update(
 	};
 	interaction_state.staff_role = role;
 
-	let acknowledge_response = InteractionResponse {
-		kind: InteractionResponseType::DeferredUpdateMessage,
-		data: None,
-	};
-	let interaction_client = http_client.interaction(application_id);
-	interaction_client
-		.create_response(interaction.id, &interaction.token, &acknowledge_response)
-		.await
-		.into_diagnostic()?;
-
 	let updated_components = set_up_components(
 		setup_id,
 		interaction_state.admin_role.is_none() || interaction_state.staff_role.is_none(),
 	);
+	let response = InteractionResponseDataBuilder::new()
+		.components(updated_components)
+		.build();
+	let response = InteractionResponse {
+		kind: InteractionResponseType::UpdateMessage,
+		data: Some(response),
+	};
 	interaction_client
-		.update_response(&interaction_state.initial_message_token)
-		.components(Some(&updated_components))
+		.create_response(interaction.id, &interaction.token, &response)
 		.await
 		.into_diagnostic()?;
 
@@ -187,11 +207,22 @@ async fn handle_confirm(
 	let Some(setup_state) = state.get_mut::<SetupState>() else {
 		return Ok(());
 	};
+	let interaction_client = http_client.interaction(application_id);
 	let Some(interaction_state) = setup_state.states.get_mut(setup_id) else {
+		let response = InteractionResponseDataBuilder::new()
+			.content(SETUP_EXPIRED_MESSAGE)
+			.components(Vec::new())
+			.build();
+		let response = InteractionResponse {
+			kind: InteractionResponseType::UpdateMessage,
+			data: Some(response),
+		};
+		interaction_client
+			.create_response(interaction.id, &interaction.token, &response)
+			.await
+			.into_diagnostic()?;
 		return Ok(());
 	};
-
-	let interaction_client = http_client.interaction(application_id);
 
 	let (Some(admin_role), Some(staff_role)) = (interaction_state.admin_role, interaction_state.staff_role) else {
 		let response = InteractionResponseDataBuilder::new()
@@ -227,25 +258,24 @@ async fn handle_confirm(
 				.content(
 					"You've set up Twilight Sword! 🎉\nRemember to use `/settings` to configure other functionality.",
 				)
+				.components(Vec::new())
 				.build();
 			let response = InteractionResponse {
-				kind: InteractionResponseType::ChannelMessageWithSource,
+				kind: InteractionResponseType::UpdateMessage,
 				data: Some(response),
 			};
-			let message_send = interaction_client.create_response(interaction.id, &interaction.token, &response);
-			let initial_edit = interaction_client
-				.update_response(&interaction_state.initial_message_token)
-				.components(None);
-			let (send_result, edit_result) = tokio::join!(message_send, initial_edit);
-			send_result.into_diagnostic()?;
-			edit_result.into_diagnostic()?;
+			interaction_client
+				.create_response(interaction.id, &interaction.token, &response)
+				.await
+				.into_diagnostic()?;
 		}
 		Err(DbError::DatabaseError(DatabaseErrorKind::UniqueViolation, _)) => {
 			let response = InteractionResponseDataBuilder::new()
 				.content("This server is already set up. Setup may have been completed elsewhere.")
+				.components(Vec::new())
 				.build();
 			let response = InteractionResponse {
-				kind: InteractionResponseType::ChannelMessageWithSource,
+				kind: InteractionResponseType::UpdateMessage,
 				data: Some(response),
 			};
 			interaction_client
@@ -257,9 +287,10 @@ async fn handle_confirm(
 			tracing::error!(source = ?error, "A database error occurred setting up a new guild");
 			let response = InteractionResponseDataBuilder::new()
 				.content("An internal error occurred setting up the server.")
+				.components(Vec::new())
 				.build();
 			let response = InteractionResponse {
-				kind: InteractionResponseType::ChannelMessageWithSource,
+				kind: InteractionResponseType::UpdateMessage,
 				data: Some(response),
 			};
 			interaction_client
@@ -282,27 +313,23 @@ async fn handle_cancel(
 	let mut state = bot_state.write().await;
 	let setup_state = state.get_mut::<SetupState>();
 
-	let setup_instance_state = setup_state.and_then(|state| state.states.remove(setup_id));
+	if let Some(state) = setup_state {
+		state.states.remove(setup_id);
+	}
 
 	let interaction_client = http_client.interaction(application_id);
 	let response = InteractionResponseDataBuilder::new()
 		.content("Twilight Sword setup canceled.")
+		.components(Vec::new())
 		.build();
 	let response = InteractionResponse {
-		kind: InteractionResponseType::ChannelMessageWithSource,
+		kind: InteractionResponseType::UpdateMessage,
 		data: Some(response),
 	};
-	let message_send = interaction_client.create_response(interaction.id, &interaction.token, &response);
-	if let Some(setup_instance_state) = setup_instance_state {
-		let initial_edit = interaction_client
-			.update_response(&setup_instance_state.initial_message_token)
-			.components(None);
-		let (send_result, edit_result) = tokio::join!(message_send, initial_edit);
-		send_result.into_diagnostic()?;
-		edit_result.into_diagnostic()?;
-	} else {
-		message_send.await.into_diagnostic()?;
-	}
+	interaction_client
+		.create_response(interaction.id, &interaction.token, &response)
+		.await
+		.into_diagnostic()?;
 
 	Ok(())
 }

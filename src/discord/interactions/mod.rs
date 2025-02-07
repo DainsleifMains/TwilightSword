@@ -8,7 +8,6 @@ use diesel::prelude::*;
 use diesel::r2d2::{ConnectionManager, Pool};
 use miette::bail;
 use std::sync::Arc;
-use std::time::Duration;
 use tokio::sync::RwLock;
 use twilight_http::client::Client;
 use twilight_model::application::interaction::message_component::MessageComponentInteractionData;
@@ -21,8 +20,6 @@ use type_map::concurrent::TypeMap;
 mod create_ticket;
 mod settings;
 mod setup;
-
-pub const MAX_INTERACTION_WAIT_TIME: Duration = Duration::from_secs(895);
 
 pub async fn route_interaction(
 	interaction: &InteractionCreate,
