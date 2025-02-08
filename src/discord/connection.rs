@@ -97,6 +97,7 @@ async fn handle_event_route(
 	db_connection_pool: Pool<ConnectionManager<PgConnection>>,
 	bot_state: Arc<RwLock<TypeMap>>,
 ) -> miette::Result<()> {
+	tracing::debug!("Incoming gateway message: {:?}", event);
 	match event {
 		Event::InteractionCreate(interaction) => match &interaction.data {
 			Some(InteractionData::ApplicationCommand(command_data)) => {
@@ -138,7 +139,7 @@ async fn handle_event_route(
 			route_events(&event_audit_data.0, http_client, db_connection_pool).await?
 		}
 		Event::Ready(_) => {
-			tracing::debug!("Gateway is ready");
+			tracing::info!("Discord gateway is ready");
 		}
 		_ => (),
 	}
