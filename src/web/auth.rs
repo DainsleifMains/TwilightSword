@@ -13,10 +13,10 @@ use axum::middleware::Next;
 use axum::response::{IntoResponse, Redirect, Response};
 use miette::IntoDiagnostic;
 use oauth2::basic::BasicClient;
-use oauth2::reqwest::async_http_client;
+use oauth2::reqwest::{redirect, ClientBuilder};
 use oauth2::{
-	AuthUrl, AuthorizationCode, ClientId, ClientSecret, CsrfToken, PkceCodeChallenge, PkceCodeVerifier, RedirectUrl,
-	Scope, TokenResponse, TokenUrl,
+	AuthUrl, AuthorizationCode, ClientId, ClientSecret, CsrfToken, EndpointNotSet, EndpointSet, PkceCodeChallenge,
+	PkceCodeVerifier, RedirectUrl, Scope, TokenResponse, TokenUrl,
 };
 use serde::Deserialize;
 use tower_sessions::Session;
@@ -28,7 +28,9 @@ pub const DISCORD_AUTH_URL: &str = "https://discord.com/oauth2/authorize";
 pub const DISCORD_AUTH_TOKEN_URL: &str = "https://discord.com/api/oauth2/token";
 
 /// Gets the OAuth client object for interacting with Discord as an OAuth2 client
-fn discord_oauth_client(config: &ConfigData) -> miette::Result<BasicClient> {
+fn discord_oauth_client(
+	config: &ConfigData,
+) -> miette::Result<BasicClient<EndpointSet, EndpointNotSet, EndpointNotSet, EndpointNotSet, EndpointSet>> {
 	let client_id = ClientId::new(config.discord.client_id.clone());
 	let client_secret = ClientSecret::new(config.discord.client_secret.clone());
 
@@ -37,8 +39,11 @@ fn discord_oauth_client(config: &ConfigData) -> miette::Result<BasicClient> {
 
 	let redirect_url = RedirectUrl::new(format!("{}/discord_auth_callback", config.web.base_url)).into_diagnostic()?;
 
-	let client =
-		BasicClient::new(client_id, Some(client_secret), auth_url, Some(token_url)).set_redirect_uri(redirect_url);
+	let client = BasicClient::new(client_id)
+		.set_client_secret(client_secret)
+		.set_auth_uri(auth_url)
+		.set_token_uri(token_url)
+		.set_redirect_uri(redirect_url);
 	Ok(client)
 }
 
@@ -160,10 +165,17 @@ pub async fn discord_auth_route(
 	let auth_code = AuthorizationCode::new(query.code);
 	let code_verifier = PkceCodeVerifier::new(code_verifier);
 
+	let http_client = match ClientBuilder::new().redirect(redirect::Policy::none()).build() {
+		Ok(client) => client,
+		Err(error) => {
+			tracing::error!(source = ?error, "Failed to set up HTTP client to validate oauth response");
+			return StatusCode::INTERNAL_SERVER_ERROR.into_response();
+		}
+	};
 	let token_response = oauth_client
 		.exchange_code(auth_code)
 		.set_pkce_verifier(code_verifier)
-		.request_async(async_http_client)
+		.request_async(&http_client)
 		.await;
 	let token_response = match token_response {
 		Ok(response) => response,
