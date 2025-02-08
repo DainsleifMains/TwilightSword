@@ -7,20 +7,20 @@ edition = "2021"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-async-trait = { version = "0.1.85", optional = true }
+async-trait = { version = "0.1.86", optional = true }
 bigdecimal = { version = "0.4.7", optional = true }
 chrono = { version = "0.4.39", features = ["serde"] }
 console_error_panic_hook = { version = "0.1.7", optional = true }
 cuid2 = { version = "0.1.4", optional = true }
 diesel_migrations = { version = "2.2.0", optional = true }
-kdl = { version = "6.3.2", optional = true }
-leptos = "0.7.4"
-leptos_axum = { version = "0.7.4", optional = true }
-leptos_meta = "0.7.4"
-leptos_router = "0.7.4"
+kdl = { version = "6.3.3", optional = true }
+leptos = "0.7.5"
+leptos_axum = { version = "0.7.5", optional = true }
+leptos_meta = "0.7.5"
+leptos_router = "0.7.5"
 oauth2 = { version = "4.4.2", optional = true }
 serde = "1.0.217"
-serde_json = "1.0.135"
+serde_json = "1.0.138"
 time = { version = "0.3.37", optional = true } # Just for tower-sessions integration; use chrono otherwise
 tower = { version = "0.5.2", optional = true }
 tower-http = { version = "0.6.2", optional = true }
@@ -42,7 +42,7 @@ features = [
 optional = true
 
 [dependencies.diesel]
-version = "2.2.6"
+version = "2.2.7"
 features = [
 	"chrono",
 	"numeric",
@@ -59,7 +59,7 @@ features = [
 optional = true
 
 [dependencies.miette]
-version = "7.4.0"
+version = "7.5.0"
 features = [
 	"fancy"
 ]
@@ -87,7 +87,7 @@ optional = true
 
 [dependencies.wasm-bindgen]
 # This must match the version of wasm-bindgen with which cargo-leptos is built
-version = "=0.2.100"
+version = "0.2.100"
 optional = true
 
 [features]
