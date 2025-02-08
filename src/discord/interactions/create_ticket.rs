@@ -6,10 +6,12 @@
 
 use crate::discord::state::create_ticket::{BuiltInCategory, CreateTicketState, CreateTicketStates};
 use crate::discord::utils::invites::invite_code_from_url;
-use crate::model::{database_id_from_discord_id, CustomCategory, Guild, Ticket};
-use crate::schema::{custom_categories, guilds, tickets};
+use crate::model::{database_id_from_discord_id, CustomCategory, Guild, PendingPartnership, Ticket, TicketMessage};
+use crate::schema::{custom_categories, guilds, pending_partnerships, ticket_messages, tickets};
+use chrono::Utc;
 use diesel::prelude::*;
 use diesel::r2d2::{ConnectionManager, Pool};
+use diesel::result::Error as DbError;
 use miette::{bail, ensure, IntoDiagnostic};
 use std::sync::Arc;
 use tokio::sync::RwLock;
@@ -703,6 +705,21 @@ async fn handle_message_modal_data(
 		custom_category: create_ticket_state.custom_category_id.clone(),
 		is_open: true,
 	};
+	let new_ticket_message = TicketMessage {
+		id: cuid2::create_id(),
+		ticket: create_id.to_string(),
+		author: db_user_id,
+		send_time: Utc::now(),
+		internal: false,
+		body: ticket_message.clone(),
+	};
+	let pending_partnership = invite_data.map(|invite_data| PendingPartnership {
+		id: cuid2::create_id(),
+		guild: db_guild_id,
+		partner_guild: database_id_from_discord_id(invite_data.guild.unwrap().id.get()),
+		invite_code: invite_data.code,
+		ticket: create_id.to_string(),
+	});
 
 	let mut db_connection = db_connection_pool.get().into_diagnostic()?;
 	let guild_data: Option<Guild> = guilds::table
@@ -783,9 +800,21 @@ async fn handle_message_modal_data(
 		return Ok(());
 	}
 
-	diesel::insert_into(tickets::table)
-		.values(new_ticket)
-		.execute(&mut db_connection)
+	db_connection
+		.transaction(|db_connection| {
+			diesel::insert_into(tickets::table)
+				.values(new_ticket)
+				.execute(db_connection)?;
+			diesel::insert_into(ticket_messages::table)
+				.values(new_ticket_message)
+				.execute(db_connection)?;
+			if let Some(pending_partnership) = pending_partnership {
+				diesel::insert_into(pending_partnerships::table)
+					.values(pending_partnership)
+					.execute(db_connection)?;
+			}
+			Ok::<(), DbError>(())
+		})
 		.into_diagnostic()?;
 
 	let response = InteractionResponseDataBuilder::new()

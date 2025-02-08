@@ -5,8 +5,8 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use crate::schema::{
-	automod_actions, ban_actions, custom_categories, form_questions, forms, guilds, kick_actions, sessions, tickets,
-	timeout_actions,
+	automod_actions, ban_actions, custom_categories, form_questions, forms, guilds, kick_actions, pending_partnerships,
+	sessions, ticket_messages, tickets, timeout_actions,
 };
 use bigdecimal::BigDecimal;
 use chrono::{DateTime, Utc};
@@ -290,6 +290,34 @@ impl Ticket {
 	}
 }
 
+/// The database representation of a message in a ticket
+#[derive(Insertable, Queryable)]
+pub struct TicketMessage {
+	/// Message ID
+	pub id: String,
+	/// The ID of the ticket for which this message was sent
+	pub ticket: String,
+	/// The ID of the user who wrote the message.
+	///
+	/// To get a Discord-facing version of this more easily, use [Self::get_author].
+	pub author: i64,
+	/// When the message was sent
+	pub send_time: DateTime<Utc>,
+	/// Whether this is an internal message (for server staff) or not (sent to non-staff user)
+	pub internal: bool,
+	/// The message content
+	pub body: String,
+}
+
+impl TicketMessage {
+	/// The user who wrote the message.
+	///
+	/// For the raw database representation, use [Self::author].
+	pub fn get_author(&self) -> Id<UserMarker> {
+		Id::new(discord_id_from_database_id(self.author))
+	}
+}
+
 /// The database representation of an action taken by automod
 #[derive(Insertable, Queryable)]
 pub struct AutomodAction {
@@ -458,16 +486,51 @@ impl TimeoutAction {
 
 	/// The ID of the user who performed the timeout.
 	///
-	/// For the raw database representation, use [Self::get_performing_user].
+	/// For the raw database representation, use [Self::performing_user].
 	pub fn get_performing_user(&self) -> Id<UserMarker> {
 		Id::new(discord_id_from_database_id(self.performing_user))
 	}
 
 	/// The ID of the user who was timed out.
 	///
-	/// For the raw database representation, use [Self::get_target_user].
+	/// For the raw database representation, use [Self::target_user].
 	pub fn get_target_user(&self) -> Id<UserMarker> {
 		Id::new(discord_id_from_database_id(self.target_user))
+	}
+}
+
+/// The database representation of a partnership that is being discussed or decided
+#[derive(Insertable, Queryable)]
+pub struct PendingPartnership {
+	/// The ID of the pending partnership
+	pub id: String,
+	/// The guild to which the partner request was sent
+	///
+	/// To get a Discord-facing representation of this more easily, use [Self::get_guild].
+	pub guild: i64,
+	/// The guild ID of the partner
+	///
+	/// To get a Discord-facing representation of this more easily, use [Self::get_partner_guild].
+	pub partner_guild: i64,
+	/// The invite code usable to join the partner guild
+	pub invite_code: String,
+	/// The ID of the ticket submitted with the partnership request
+	pub ticket: String,
+}
+
+impl PendingPartnership {
+	/// The ID of the guild to which the partner request was sent
+	///
+	/// For the raw database representation, use [Self::guild].
+	pub fn get_guild(&self) -> Id<GuildMarker> {
+		Id::new(discord_id_from_database_id(self.guild))
+	}
+
+	/// The ID of the guild that is the partner
+	///
+	/// For the raw database representation, use [Self::partner_guild].
+	pub fn get_partner_guild(&self) -> Id<GuildMarker> {
+		Id::new(discord_id_from_database_id(self.partner_guild))
 	}
 }
 

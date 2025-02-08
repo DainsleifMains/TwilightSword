@@ -98,10 +98,31 @@ diesel::table! {
 }
 
 diesel::table! {
+	pending_partnerships (id) {
+		id -> Text,
+		guild -> Int8,
+		partner_guild -> Int8,
+		invite_code -> Text,
+		ticket -> Text,
+	}
+}
+
+diesel::table! {
 	sessions (session_id) {
 		session_id -> Numeric,
 		data -> Text,
 		expires -> Timestamptz,
+	}
+}
+
+diesel::table! {
+	ticket_messages (id) {
+		id -> Text,
+		ticket -> Text,
+		author -> Int8,
+		send_time -> Timestamptz,
+		internal -> Bool,
+		body -> Text,
 	}
 }
 
@@ -138,6 +159,9 @@ diesel::joinable!(custom_categories -> forms (form));
 diesel::joinable!(custom_categories -> guilds (guild));
 diesel::joinable!(form_questions -> forms (form));
 diesel::joinable!(kick_actions -> guilds (guild));
+diesel::joinable!(pending_partnerships -> guilds (guild));
+diesel::joinable!(pending_partnerships -> tickets (ticket));
+diesel::joinable!(ticket_messages -> tickets (ticket));
 diesel::joinable!(tickets -> custom_categories (custom_category));
 diesel::joinable!(tickets -> guilds (guild));
 diesel::joinable!(timeout_actions -> guilds (guild));
@@ -150,7 +174,9 @@ diesel::allow_tables_to_appear_in_same_query!(
 	forms,
 	guilds,
 	kick_actions,
+	pending_partnerships,
 	sessions,
+	ticket_messages,
 	tickets,
 	timeout_actions,
 );

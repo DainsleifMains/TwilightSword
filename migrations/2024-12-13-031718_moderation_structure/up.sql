@@ -69,6 +69,15 @@ CREATE TABLE tickets (
 
 CREATE INDEX tickets_for_guild_with_user ON tickets (guild, with_user);
 
+CREATE TABLE ticket_messages (
+	id TEXT PRIMARY KEY,
+	ticket TEXT NOT NULL REFERENCES tickets,
+	author discord_id NOT NULL,
+	send_time TIMESTAMP WITH TIME ZONE NOT NULL,
+	internal BOOLEAN NOT NULL,
+	body TEXT NOT NULL
+);
+
 CREATE TYPE automod_action_type AS ENUM (
 	'block',
 	'disable_communication'
@@ -121,6 +130,14 @@ CREATE TABLE timeout_actions (
 );
 
 CREATE INDEX timed_out_user_by_guild ON timeout_actions (guild, target_user);
+
+CREATE TABLE pending_partnerships (
+	id TEXT PRIMARY KEY,
+	guild discord_id NOT NULL REFERENCES guilds,
+	partner_guild discord_id NOT NULL,
+	invite_code TEXT NOT NULL,
+	ticket TEXT NOT NULL REFERENCES tickets
+);
 
 CREATE TABLE sessions (
 	session_id NUMERIC PRIMARY KEY,

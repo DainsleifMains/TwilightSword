@@ -10,6 +10,7 @@ ALTER TABLE guilds DROP COLUMN existing_partner_ticket_form;
 
 DROP INDEX session_expiry;
 DROP TABLE sessions;
+DROP TABLE pending_partnerships;
 DROP INDEX timed_out_user_by_guild;
 DROP INDEX kicked_user_by_guild;
 DROP INDEX banned_user_by_guild;
@@ -19,6 +20,7 @@ DROP TABLE kick_actions;
 DROP TABLE ban_actions;
 DROP TABLE automod_actions;
 DROP TYPE automod_action_type;
+DROP TABLE ticket_messages;
 DROP INDEX tickets_for_guild_with_user;
 DROP TABLE tickets;
 DROP TABLE custom_categories;
