@@ -4,8 +4,8 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-use crate::discord::utils::permissions::channel_permissions;
-use crate::discord::utils::responses::NOT_SET_UP_FOR_GUILD;
+use crate::discord::utils::permissions::{channel_permissions, ticket_channel_permissions};
+use crate::discord::utils::responses::{ticket_channel_missing_permissions_message, NOT_SET_UP_FOR_GUILD};
 use crate::model::{database_id_from_discord_id, Guild};
 use crate::schema::guilds;
 use diesel::prelude::*;
@@ -18,7 +18,6 @@ use twilight_model::application::interaction::application_command::CommandOption
 use twilight_model::channel::message::{AllowedMentions, MessageFlags};
 use twilight_model::channel::ChannelType;
 use twilight_model::gateway::payload::incoming::InteractionCreate;
-use twilight_model::guild::Permissions;
 use twilight_model::http::interaction::{InteractionResponse, InteractionResponseType};
 use twilight_model::id::marker::{ApplicationMarker, GuildMarker};
 use twilight_model::id::Id;
@@ -184,13 +183,8 @@ async fn set_ticket_channel(
 
 	let permissions_in_channel = channel_permissions(guild_id, existing_partner_ticket_channel, http_client).await?;
 	let interaction_client = http_client.interaction(application_id);
-	if !permissions_in_channel.contains(
-		Permissions::SEND_MESSAGES_IN_THREADS | Permissions::CREATE_PUBLIC_THREADS | Permissions::MANAGE_THREADS,
-	) {
-		let response_content = format!(
-			"The channel {} doesn't have the necessary permissions (Send Messages in Threads, Create Public Threads, Manage Threads) to update it.",
-			existing_partner_ticket_channel.mention()
-		);
+	if !permissions_in_channel.contains(ticket_channel_permissions()) {
+		let response_content = ticket_channel_missing_permissions_message(existing_partner_ticket_channel.mention());
 		let response = InteractionResponseDataBuilder::new().content(response_content).build();
 		let response = InteractionResponse {
 			kind: InteractionResponseType::ChannelMessageWithSource,

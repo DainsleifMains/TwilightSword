@@ -15,6 +15,17 @@ use twilight_model::id::marker::{ChannelMarker, GuildMarker, RoleMarker};
 use twilight_model::id::Id;
 use twilight_util::permission_calculator::PermissionCalculator;
 
+// This permission list is reported to the user according to a function in the responses module, located adjacent to
+// this module.
+pub fn ticket_channel_permissions() -> Permissions {
+	Permissions::VIEW_CHANNEL
+		| Permissions::READ_MESSAGE_HISTORY
+		| Permissions::SEND_MESSAGES
+		| Permissions::SEND_MESSAGES_IN_THREADS
+		| Permissions::CREATE_PUBLIC_THREADS
+		| Permissions::MANAGE_THREADS
+}
+
 pub async fn channel_permissions(
 	guild_id: Id<GuildMarker>,
 	channel_id: Id<ChannelMarker>,
