@@ -693,33 +693,6 @@ async fn handle_message_modal_data(
 	let Some(interaction_user) = &interaction_member.user else {
 		bail!("Guild member doesn't have a user");
 	};
-	let db_user_id = database_id_from_discord_id(interaction_user.id.get());
-	let new_ticket = Ticket {
-		id: create_id.to_string(),
-		guild: db_guild_id,
-		with_user: db_user_id,
-		title: ticket_title.clone(),
-		built_in_category: create_ticket_state
-			.built_in_category
-			.map(|category| category.to_database()),
-		custom_category: create_ticket_state.custom_category_id.clone(),
-		is_open: true,
-	};
-	let new_ticket_message = TicketMessage {
-		id: cuid2::create_id(),
-		ticket: create_id.to_string(),
-		author: db_user_id,
-		send_time: Utc::now(),
-		internal: false,
-		body: ticket_message.clone(),
-	};
-	let pending_partnership = invite_data.map(|invite_data| PendingPartnership {
-		id: cuid2::create_id(),
-		guild: db_guild_id,
-		partner_guild: database_id_from_discord_id(invite_data.guild.unwrap().id.get()),
-		invite_code: invite_data.code,
-		ticket: create_id.to_string(),
-	});
 
 	let mut db_connection = db_connection_pool.get().into_diagnostic()?;
 	let guild_data: Option<Guild> = guilds::table
@@ -747,7 +720,7 @@ async fn handle_message_modal_data(
 
 	let channel_id = match (
 		create_ticket_state.built_in_category,
-		create_ticket_state.custom_category_id,
+		create_ticket_state.custom_category_id.clone(),
 	) {
 		(Some(BuiltInCategory::NewPartner), _) => guild_data.get_new_partner_ticket_channel(),
 		(Some(BuiltInCategory::ExistingPartner), _) => guild_data.get_existing_partner_ticket_channel(),
@@ -783,22 +756,56 @@ async fn handle_message_modal_data(
 		.content(&ticket_thread_message_content)
 		.allowed_mentions(Some(&AllowedMentions::default()))
 		.await;
-	if ticket_thread_result.is_err() {
-		let response_content = format!("This ticket couldn't be sent. In case you want it later, here's what you sent:\n**Title**: {}\n**Message**\n{}", ticket_title, ticket_message);
-		let response = InteractionResponseDataBuilder::new()
-			.content(response_content)
-			.components(Vec::new())
-			.build();
-		let response = InteractionResponse {
-			kind: InteractionResponseType::UpdateMessage,
-			data: Some(response),
-		};
-		interaction_client
-			.create_response(interaction.id, &interaction.token, &response)
-			.await
-			.into_diagnostic()?;
-		return Ok(());
-	}
+	let ticket_thread_response = match ticket_thread_result {
+		Ok(response) => response,
+		Err(_) => {
+			let response_content = format!("This ticket couldn't be sent. In case you want it later, here's what you sent:\n**Title**: {}\n**Message**\n{}", ticket_title, ticket_message);
+			let response = InteractionResponseDataBuilder::new()
+				.content(response_content)
+				.components(Vec::new())
+				.build();
+			let response = InteractionResponse {
+				kind: InteractionResponseType::UpdateMessage,
+				data: Some(response),
+			};
+			interaction_client
+				.create_response(interaction.id, &interaction.token, &response)
+				.await
+				.into_diagnostic()?;
+			return Ok(());
+		}
+	};
+	let ticket_thread = ticket_thread_response.model().await.into_diagnostic()?;
+	let db_staff_thread_id = database_id_from_discord_id(ticket_thread.channel.id.get());
+
+	let db_user_id = database_id_from_discord_id(interaction_user.id.get());
+	let new_ticket = Ticket {
+		id: create_id.to_string(),
+		guild: db_guild_id,
+		with_user: db_user_id,
+		title: ticket_title.clone(),
+		built_in_category: create_ticket_state
+			.built_in_category
+			.map(|category| category.to_database()),
+		custom_category: create_ticket_state.custom_category_id,
+		is_open: true,
+		staff_thread: db_staff_thread_id,
+	};
+	let new_ticket_message = TicketMessage {
+		id: cuid2::create_id(),
+		ticket: create_id.to_string(),
+		author: db_user_id,
+		send_time: Utc::now(),
+		internal: false,
+		body: ticket_message.clone(),
+	};
+	let pending_partnership = invite_data.map(|invite_data| PendingPartnership {
+		id: cuid2::create_id(),
+		guild: db_guild_id,
+		partner_guild: database_id_from_discord_id(invite_data.guild.unwrap().id.get()),
+		invite_code: invite_data.code,
+		ticket: create_id.to_string(),
+	});
 
 	db_connection
 		.transaction(|db_connection| {

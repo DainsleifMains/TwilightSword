@@ -64,6 +64,7 @@ CREATE TABLE tickets (
 	built_in_category built_in_ticket_category,
 	custom_category TEXT REFERENCES custom_categories,
 	is_open BOOLEAN NOT NULL,
+	staff_thread discord_id NOT NULL UNIQUE,
 	CONSTRAINT has_category CHECK(built_in_category IS NOT NULL OR custom_category IS NOT NULL)
 );
 

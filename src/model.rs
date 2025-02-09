@@ -272,6 +272,10 @@ pub struct Ticket {
 	pub custom_category: Option<String>,
 	/// Whether the ticket is currently open
 	pub is_open: bool,
+	/// The ID of the thread on the staff end of the ticket.
+	///
+	/// To get a Discord-facing version of this more easily, use [Self::get_staff_thread].
+	pub staff_thread: i64,
 }
 
 impl Ticket {
@@ -284,9 +288,16 @@ impl Ticket {
 
 	/// The user with whom staff is having the discussion.
 	///
-	/// To get a Discord-facing version of this more easily, use [Self::with_user].
+	/// For the raw database representation, use [Self::with_user].
 	pub fn get_with_user(&self) -> Id<UserMarker> {
 		Id::new(discord_id_from_database_id(self.with_user))
+	}
+
+	/// The ID of the thread on the staff end of the ticket.
+	///
+	/// For the raw database representation, use [Self::staff_thread].
+	pub fn get_staff_thread(&self) -> Id<ChannelMarker> {
+		Id::new(discord_id_from_database_id(self.staff_thread))
 	}
 }
 
