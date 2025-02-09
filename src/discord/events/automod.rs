@@ -4,15 +4,13 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+use crate::discord::utils::timestamp::datetime_from_id;
 use crate::model::{database_id_from_discord_id, AutomodAction, AutomodActionType, Guild};
 use crate::schema::{automod_actions, guilds};
-use chrono::offset::MappedLocalTime;
-use chrono::{TimeZone, Utc};
 use diesel::prelude::*;
 use diesel::r2d2::{ConnectionManager, Pool};
 use miette::{bail, IntoDiagnostic};
 use twilight_model::guild::audit_log::AuditLogEntry;
-use twilight_util::snowflake::Snowflake;
 
 pub async fn handle_block(
 	event_audit_entry: &AuditLogEntry,
@@ -32,9 +30,8 @@ pub async fn handle_block(
 		.clone()
 		.unwrap_or_default();
 
-	let action_time = event_audit_entry.id.timestamp();
-	let MappedLocalTime::Single(action_time) = Utc.timestamp_millis_opt(action_time) else {
-		bail!("Invalid timestamp received for automod block: {:?}", action_time);
+	let Some(action_time) = datetime_from_id(event_audit_entry.id) else {
+		bail!("Invalid timestamp received for automod block: {:?}", event_audit_entry);
 	};
 
 	let guild = database_id_from_discord_id(guild_id.get());
@@ -86,9 +83,11 @@ pub async fn handle_timeout(
 		.clone()
 		.unwrap_or_default();
 
-	let action_time = event_audit_entry.id.timestamp();
-	let MappedLocalTime::Single(action_time) = Utc.timestamp_millis_opt(action_time) else {
-		bail!("Invalid timestamp received for automod timeout: {:?}", action_time);
+	let Some(action_time) = datetime_from_id(event_audit_entry.id) else {
+		bail!(
+			"Invalid timestamp received for automod timeout: {:?}",
+			event_audit_entry
+		);
 	};
 
 	let mut db_connection = db_connection_pool.get().into_diagnostic()?;

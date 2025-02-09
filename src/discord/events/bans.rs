@@ -4,10 +4,9 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+use crate::discord::utils::timestamp::datetime_from_id;
 use crate::model::{database_id_from_discord_id, BanAction, Guild};
 use crate::schema::{ban_actions, guilds};
-use chrono::offset::MappedLocalTime;
-use chrono::{TimeZone, Utc};
 use diesel::prelude::*;
 use diesel::r2d2::{ConnectionManager, Pool};
 use miette::{bail, IntoDiagnostic};
@@ -17,7 +16,6 @@ use twilight_model::channel::message::AllowedMentions;
 use twilight_model::guild::audit_log::AuditLogEntry;
 use twilight_model::id::marker::UserMarker;
 use twilight_model::id::Id;
-use twilight_util::snowflake::Snowflake;
 
 pub async fn handle_ban(
 	event_audit_entry: &AuditLogEntry,
@@ -39,9 +37,8 @@ pub async fn handle_ban(
 	let banning_user = database_id_from_discord_id(banning_user_id.get());
 	let banned_user = database_id_from_discord_id(banned_user_id.get());
 
-	let action_time = event_audit_entry.id.timestamp();
-	let MappedLocalTime::Single(action_time) = Utc.timestamp_millis_opt(action_time) else {
-		bail!("Invalid timestamp provided with ban: {:?}", action_time);
+	let Some(action_time) = datetime_from_id(event_audit_entry.id) else {
+		bail!("Invalid timestamp provided with ban: {:?}", event_audit_entry);
 	};
 
 	let mut db_connection = db_connection_pool.get().into_diagnostic()?;
@@ -101,9 +98,8 @@ pub async fn handle_unban(
 	let banning_user = database_id_from_discord_id(banning_user.get());
 	let banned_user = database_id_from_discord_id(banned_user.get());
 
-	let action_time = event_audit_entry.id.timestamp();
-	let MappedLocalTime::Single(action_time) = Utc.timestamp_millis_opt(action_time) else {
-		bail!("Invalid timestamp provided with unban: {:?}", action_time);
+	let Some(action_time) = datetime_from_id(event_audit_entry.id) else {
+		bail!("Invalid timestamp provided with unban: {:?}", event_audit_entry);
 	};
 
 	let mut db_connection = db_connection_pool.get().into_diagnostic()?;

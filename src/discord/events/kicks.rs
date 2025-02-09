@@ -4,10 +4,9 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+use crate::discord::utils::timestamp::datetime_from_id;
 use crate::model::{database_id_from_discord_id, Guild, KickAction};
 use crate::schema::{guilds, kick_actions};
-use chrono::offset::MappedLocalTime;
-use chrono::{TimeZone, Utc};
 use diesel::prelude::*;
 use diesel::r2d2::{ConnectionManager, Pool};
 use miette::{bail, IntoDiagnostic};
@@ -17,7 +16,6 @@ use twilight_model::channel::message::AllowedMentions;
 use twilight_model::guild::audit_log::AuditLogEntry;
 use twilight_model::id::marker::UserMarker;
 use twilight_model::id::Id;
-use twilight_util::snowflake::Snowflake;
 
 pub async fn handle_kick(
 	event_audit_entry: &AuditLogEntry,
@@ -40,8 +38,7 @@ pub async fn handle_kick(
 	let kicked_user = database_id_from_discord_id(kicked_user_id.get());
 	let reason = event_audit_entry.reason.clone().unwrap_or_default();
 
-	let action_time = event_audit_entry.id.timestamp();
-	let MappedLocalTime::Single(action_time) = Utc.timestamp_millis_opt(action_time) else {
+	let Some(action_time) = datetime_from_id(event_audit_entry.id) else {
 		bail!("Invalid timestamp with kick action: {:?}", event_audit_entry);
 	};
 

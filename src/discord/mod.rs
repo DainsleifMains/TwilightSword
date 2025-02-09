@@ -7,6 +7,7 @@
 mod commands;
 mod connection;
 mod events;
+mod incoming_messages;
 mod interactions;
 mod state;
 mod utils;

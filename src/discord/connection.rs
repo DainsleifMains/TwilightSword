@@ -6,6 +6,7 @@
 
 use super::commands::{command_definitions, route_command};
 use super::events::route_events;
+use super::incoming_messages::handle_message;
 use super::interactions::{route_interaction, route_modal_submit};
 use crate::config::ConfigData;
 use diesel::prelude::*;
@@ -138,6 +139,7 @@ async fn handle_event_route(
 		Event::GuildAuditLogEntryCreate(event_audit_data) => {
 			route_events(&event_audit_data.0, http_client, db_connection_pool).await?
 		}
+		Event::MessageCreate(message_created) => handle_message(&message_created.0, db_connection_pool).await?,
 		Event::Ready(_) => {
 			tracing::info!("Discord gateway is ready");
 		}

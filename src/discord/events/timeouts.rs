@@ -4,10 +4,9 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+use crate::discord::utils::timestamp::{datetime_from_id, datetime_from_timestamp};
 use crate::model::{database_id_from_discord_id, Guild, TimeoutAction};
 use crate::schema::{guilds, timeout_actions};
-use chrono::offset::MappedLocalTime;
-use chrono::{TimeZone, Utc};
 use diesel::prelude::*;
 use diesel::r2d2::{ConnectionManager, Pool};
 use miette::{bail, IntoDiagnostic};
@@ -18,7 +17,6 @@ use twilight_model::guild::audit_log::AuditLogEntry;
 use twilight_model::id::marker::UserMarker;
 use twilight_model::id::Id;
 use twilight_model::util::datetime::Timestamp;
-use twilight_util::snowflake::Snowflake;
 
 pub async fn handle_timeout_update(
 	event_audit_entry: &AuditLogEntry,
@@ -42,19 +40,14 @@ pub async fn handle_timeout_update(
 	let target_user = database_id_from_discord_id(target_user_id.get());
 	let reason = event_audit_entry.reason.clone().unwrap_or_default();
 
-	let action_time = event_audit_entry.id.timestamp();
-	let MappedLocalTime::Single(action_time) = Utc.timestamp_millis_opt(action_time) else {
+	let Some(action_time) = datetime_from_id(event_audit_entry.id) else {
 		bail!("Timeout action has invalid timestamp: {:?}", event_audit_entry);
 	};
 
-	let timeout_until = expires_at.map(|ts| Utc.timestamp_micros(ts.as_micros()));
+	let timeout_until = expires_at.map(|ts| datetime_from_timestamp(&ts));
 	let timeout_until = match timeout_until {
-		Some(expiry) => {
-			let MappedLocalTime::Single(expiry) = expiry else {
-				bail!("Invalid timeout expiration: {:?}", expiry);
-			};
-			Some(expiry)
-		}
+		Some(Some(expiry)) => Some(expiry),
+		Some(None) => bail!("Invalid timeout expiration: {:?}", expires_at),
 		None => None,
 	};
 
