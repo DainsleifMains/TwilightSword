@@ -17,11 +17,16 @@ use twilight_model::id::marker::ApplicationMarker;
 use twilight_model::id::Id;
 use type_map::concurrent::TypeMap;
 
+mod reply;
 mod settings;
 mod setup;
 
 pub fn command_definitions() -> Vec<Command> {
-	vec![setup::command_definition(), settings::command_definition()]
+	vec![
+		reply::command_definition(),
+		setup::command_definition(),
+		settings::command_definition(),
+	]
 }
 
 pub async fn route_command(
@@ -33,6 +38,7 @@ pub async fn route_command(
 	bot_state: Arc<RwLock<TypeMap>>,
 ) -> miette::Result<()> {
 	match command_data.name.as_str() {
+		"reply" => reply::handle_command(interaction, http_client, application_id, db_connection_pool, bot_state).await,
 		"setup" => setup::handle_command(interaction, http_client, application_id, db_connection_pool, bot_state).await,
 		"settings" => {
 			settings::handle_command(

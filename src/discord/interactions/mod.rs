@@ -18,6 +18,7 @@ use twilight_model::id::Id;
 use type_map::concurrent::TypeMap;
 
 mod create_ticket;
+mod reply;
 mod settings;
 mod setup;
 
@@ -77,6 +78,18 @@ pub async fn route_modal_submit(
 	match custom_id_path.first().map(|s| s.as_str()) {
 		Some("create_ticket") => {
 			create_ticket::route_create_ticket_modal(
+				interaction,
+				modal_data,
+				&custom_id_path,
+				http_client,
+				application_id,
+				db_connection_pool,
+				bot_state,
+			)
+			.await
+		}
+		Some("reply") => {
+			reply::route_reply_modal(
 				interaction,
 				modal_data,
 				&custom_id_path,

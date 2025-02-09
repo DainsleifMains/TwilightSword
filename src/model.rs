@@ -32,7 +32,7 @@ pub enum AutomodActionType {
 }
 
 /// Gets a guild that's using the bot and its various settings.
-#[derive(Default, Insertable, Queryable)]
+#[derive(Debug, Default, Insertable, Queryable)]
 pub struct Guild {
 	/// The ID of the guild in question.
 	///
@@ -181,7 +181,7 @@ impl Guild {
 
 /// The database representation of a form, a set of default questions that can be given to a user for a particular type
 /// of ticket
-#[derive(Insertable, Queryable)]
+#[derive(Debug, Insertable, Queryable)]
 pub struct Form {
 	/// The form's ID
 	pub id: String,
@@ -203,7 +203,7 @@ impl Form {
 }
 
 /// The database representation of a question on a form
-#[derive(Insertable, Queryable)]
+#[derive(Debug, Insertable, Queryable)]
 pub struct FormQuestion {
 	/// Question's ID
 	pub id: String,
@@ -216,7 +216,7 @@ pub struct FormQuestion {
 }
 
 /// The database representation of a custom ticket category
-#[derive(Insertable, Queryable)]
+#[derive(Debug, Insertable, Queryable)]
 #[diesel(table_name = custom_categories)]
 pub struct CustomCategory {
 	/// Category's ID
@@ -252,7 +252,7 @@ impl CustomCategory {
 }
 
 /// The database representation of a ticket and its conversation metadata
-#[derive(Insertable, Queryable)]
+#[derive(Debug, Insertable, Queryable)]
 pub struct Ticket {
 	/// Ticket's ID
 	pub id: String,
@@ -302,7 +302,7 @@ impl Ticket {
 }
 
 /// The database representation of a message in a ticket
-#[derive(Insertable, Queryable)]
+#[derive(Debug, Insertable, Queryable)]
 pub struct TicketMessage {
 	/// Message ID
 	pub id: String,
@@ -330,7 +330,7 @@ impl TicketMessage {
 }
 
 /// The database representation of an action taken by automod
-#[derive(Insertable, Queryable)]
+#[derive(Debug, Insertable, Queryable)]
 pub struct AutomodAction {
 	/// Automod action's ID
 	pub id: String,
@@ -369,7 +369,7 @@ impl AutomodAction {
 }
 
 /// The database representation of a ban or unban
-#[derive(Insertable, Queryable)]
+#[derive(Debug, Insertable, Queryable)]
 pub struct BanAction {
 	/// The ID of the ban
 	pub id: String,
@@ -417,7 +417,7 @@ impl BanAction {
 }
 
 /// The database representation of a kick action
-#[derive(Insertable, Queryable)]
+#[derive(Debug, Insertable, Queryable)]
 pub struct KickAction {
 	/// The ID of the kick
 	pub id: String,
@@ -463,7 +463,7 @@ impl KickAction {
 }
 
 /// The database representation of a timeout action
-#[derive(Insertable, Queryable)]
+#[derive(Debug, Insertable, Queryable)]
 pub struct TimeoutAction {
 	/// The ID of the timeout
 	pub id: String,
@@ -511,7 +511,7 @@ impl TimeoutAction {
 }
 
 /// The database representation of a partnership that is being discussed or decided
-#[derive(Insertable, Queryable)]
+#[derive(Debug, Insertable, Queryable)]
 pub struct PendingPartnership {
 	/// The ID of the pending partnership
 	pub id: String,
@@ -545,7 +545,7 @@ impl PendingPartnership {
 	}
 }
 
-#[derive(Insertable, Queryable)]
+#[derive(Debug, Insertable, Queryable)]
 pub struct Session {
 	pub session_id: BigDecimal,
 	pub data: String,
