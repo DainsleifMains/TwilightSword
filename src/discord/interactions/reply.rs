@@ -132,24 +132,6 @@ async fn handle_reply_modal(
 	};
 	let ticket = reply_state.ticket;
 
-	let send_time = datetime_from_id(interaction.id).unwrap_or_else(Utc::now);
-
-	let ticket_message = TicketMessage {
-		id: reply_id.to_string(),
-		ticket: ticket.id,
-		author: database_id_from_discord_id(message_author.get()),
-		send_time,
-		internal: false,
-		body: message.clone(),
-	};
-
-	let mut db_connection = db_connection_pool.get().into_diagnostic()?;
-
-	diesel::insert_into(ticket_messages::table)
-		.values(ticket_message)
-		.execute(&mut db_connection)
-		.into_diagnostic()?;
-
 	let response_content = format!("Ticket response from {}:\n\n{}", message_author.mention(), message);
 	let response = InteractionResponseDataBuilder::new()
 		.content(response_content)
@@ -162,6 +144,31 @@ async fn handle_reply_modal(
 	interaction_client
 		.create_response(interaction.id, &interaction.token, &response)
 		.await
+		.into_diagnostic()?;
+	let response_message = interaction_client
+		.response(&interaction.token)
+		.await
+		.into_diagnostic()?;
+	let response_message = response_message.model().await.into_diagnostic()?;
+
+	let send_time = datetime_from_id(interaction.id).unwrap_or_else(Utc::now);
+	let staff_message = database_id_from_discord_id(response_message.id.get());
+
+	let ticket_message = TicketMessage {
+		id: reply_id.to_string(),
+		ticket: ticket.id,
+		author: database_id_from_discord_id(message_author.get()),
+		send_time,
+		internal: false,
+		body: message.clone(),
+		staff_message,
+	};
+
+	let mut db_connection = db_connection_pool.get().into_diagnostic()?;
+
+	diesel::insert_into(ticket_messages::table)
+		.values(ticket_message)
+		.execute(&mut db_connection)
 		.into_diagnostic()?;
 
 	Ok(())

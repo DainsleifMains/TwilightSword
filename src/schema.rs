@@ -123,6 +123,7 @@ diesel::table! {
 		send_time -> Timestamptz,
 		internal -> Bool,
 		body -> Text,
+		staff_message -> Int8,
 	}
 }
 

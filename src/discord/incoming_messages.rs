@@ -11,7 +11,7 @@ use diesel::prelude::*;
 use diesel::r2d2::{ConnectionManager, Pool};
 use miette::IntoDiagnostic;
 use twilight_http::client::Client;
-use twilight_model::channel::message::Message;
+use twilight_model::channel::message::{Message, MessageReferenceType};
 
 pub async fn handle_message(
 	message: &Message,
@@ -36,18 +36,44 @@ pub async fn handle_message(
 		return Ok(());
 	};
 
+	let reply_message_id = message.reference.as_ref().and_then(|message_reference| {
+		if message_reference.kind == MessageReferenceType::Default {
+			message_reference.message_id
+		} else {
+			None
+		}
+	});
+
+	let internal = if let Some(message_id) = reply_message_id {
+		let db_message_id = database_id_from_discord_id(message_id.get());
+		let message: Option<TicketMessage> = ticket_messages::table
+			.filter(
+				ticket_messages::staff_message
+					.eq(db_message_id)
+					.and(ticket_messages::internal.eq(false)),
+			)
+			.first(&mut db_connection)
+			.optional()
+			.into_diagnostic()?;
+		message.is_none()
+	} else {
+		true
+	};
+
 	let Some(message_time) = datetime_from_timestamp(&message.timestamp) else {
 		return Ok(());
 	};
 
 	let author = database_id_from_discord_id(message.author.id.get());
+	let staff_message = database_id_from_discord_id(message.id.get());
 	let new_message = TicketMessage {
 		id: cuid2::create_id(),
 		ticket: ticket.id,
 		author,
 		send_time: message_time,
-		internal: true,
+		internal,
 		body: message.content.clone(),
+		staff_message,
 	};
 	diesel::insert_into(ticket_messages::table)
 		.values(new_message)

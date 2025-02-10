@@ -76,7 +76,8 @@ CREATE TABLE ticket_messages (
 	author discord_id NOT NULL,
 	send_time TIMESTAMP WITH TIME ZONE NOT NULL,
 	internal BOOLEAN NOT NULL,
-	body TEXT NOT NULL
+	body TEXT NOT NULL,
+	staff_message discord_id NOT NULL UNIQUE
 );
 
 CREATE TYPE automod_action_type AS ENUM (

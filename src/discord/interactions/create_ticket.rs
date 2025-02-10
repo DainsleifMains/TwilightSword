@@ -775,8 +775,23 @@ async fn handle_message_modal_data(
 			return Ok(());
 		}
 	};
+
+	let response = InteractionResponseDataBuilder::new()
+		.content("Ticket submitted!")
+		.components(Vec::new())
+		.build();
+	let response = InteractionResponse {
+		kind: InteractionResponseType::UpdateMessage,
+		data: Some(response),
+	};
+	interaction_client
+		.create_response(interaction.id, &interaction.token, &response)
+		.await
+		.into_diagnostic()?;
+
 	let ticket_thread = ticket_thread_response.model().await.into_diagnostic()?;
 	let db_staff_thread_id = database_id_from_discord_id(ticket_thread.channel.id.get());
+	let db_staff_message_id = database_id_from_discord_id(ticket_thread.message.id.get());
 
 	let db_user_id = database_id_from_discord_id(interaction_user.id.get());
 	let new_ticket = Ticket {
@@ -798,6 +813,7 @@ async fn handle_message_modal_data(
 		send_time: Utc::now(),
 		internal: false,
 		body: ticket_message.clone(),
+		staff_message: db_staff_message_id,
 	};
 	let pending_partnership = invite_data.map(|invite_data| PendingPartnership {
 		id: cuid2::create_id(),
@@ -822,19 +838,6 @@ async fn handle_message_modal_data(
 			}
 			Ok::<(), DbError>(())
 		})
-		.into_diagnostic()?;
-
-	let response = InteractionResponseDataBuilder::new()
-		.content("Ticket submitted!")
-		.components(Vec::new())
-		.build();
-	let response = InteractionResponse {
-		kind: InteractionResponseType::UpdateMessage,
-		data: Some(response),
-	};
-	interaction_client
-		.create_response(interaction.id, &interaction.token, &response)
-		.await
 		.into_diagnostic()?;
 
 	Ok(())

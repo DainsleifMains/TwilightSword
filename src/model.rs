@@ -318,6 +318,10 @@ pub struct TicketMessage {
 	pub internal: bool,
 	/// The message content
 	pub body: String,
+	/// The ID of the staff thread post for this message.
+	///
+	/// To get a Discord-facing version of this more easily, use [Self::get_staff_message].
+	pub staff_message: i64,
 }
 
 impl TicketMessage {
@@ -326,6 +330,13 @@ impl TicketMessage {
 	/// For the raw database representation, use [Self::author].
 	pub fn get_author(&self) -> Id<UserMarker> {
 		Id::new(discord_id_from_database_id(self.author))
+	}
+
+	/// The staff thread post for this message.
+	///
+	/// For the raw database representation, use [Self::staff_message].
+	pub fn get_staff_message(&self) -> Id<MessageMarker> {
+		Id::new(discord_id_from_database_id(self.staff_message))
 	}
 }
 
