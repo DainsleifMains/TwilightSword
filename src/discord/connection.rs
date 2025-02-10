@@ -139,7 +139,9 @@ async fn handle_event_route(
 		Event::GuildAuditLogEntryCreate(event_audit_data) => {
 			route_events(&event_audit_data.0, http_client, db_connection_pool).await?
 		}
-		Event::MessageCreate(message_created) => handle_message(&message_created.0, db_connection_pool).await?,
+		Event::MessageCreate(message_created) => {
+			handle_message(&message_created.0, http_client, db_connection_pool).await?
+		}
 		Event::Ready(_) => {
 			tracing::info!("Discord gateway is ready");
 		}

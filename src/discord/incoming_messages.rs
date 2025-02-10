@@ -10,12 +10,20 @@ use crate::schema::{ticket_messages, tickets};
 use diesel::prelude::*;
 use diesel::r2d2::{ConnectionManager, Pool};
 use miette::IntoDiagnostic;
+use twilight_http::client::Client;
 use twilight_model::channel::message::Message;
 
 pub async fn handle_message(
 	message: &Message,
+	http_client: &Client,
 	db_connection_pool: Pool<ConnectionManager<PgConnection>>,
 ) -> miette::Result<()> {
+	let bot_user_response = http_client.current_user().await.into_diagnostic()?;
+	let bot_user = bot_user_response.model().await.into_diagnostic()?;
+	if message.author.id == bot_user.id {
+		return Ok(());
+	}
+
 	let mut db_connection = db_connection_pool.get().into_diagnostic()?;
 
 	let db_channel_id = database_id_from_discord_id(message.channel_id.get());
