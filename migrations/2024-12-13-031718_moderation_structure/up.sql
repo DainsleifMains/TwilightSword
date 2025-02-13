@@ -65,6 +65,7 @@ CREATE TABLE tickets (
 	custom_category TEXT REFERENCES custom_categories,
 	is_open BOOLEAN NOT NULL,
 	staff_thread discord_id NOT NULL UNIQUE,
+	user_thread discord_id NOT NULL UNIQUE,
 	CONSTRAINT has_category CHECK(built_in_category IS NOT NULL OR custom_category IS NOT NULL)
 );
 
@@ -75,9 +76,9 @@ CREATE TABLE ticket_messages (
 	ticket TEXT NOT NULL REFERENCES tickets,
 	author discord_id NOT NULL,
 	send_time TIMESTAMP WITH TIME ZONE NOT NULL,
-	internal BOOLEAN NOT NULL,
 	body TEXT NOT NULL,
-	staff_message discord_id NOT NULL UNIQUE
+	staff_message discord_id NOT NULL UNIQUE,
+	user_message discord_id UNIQUE
 );
 
 CREATE TYPE automod_action_type AS ENUM (

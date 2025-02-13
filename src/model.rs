@@ -276,6 +276,10 @@ pub struct Ticket {
 	///
 	/// To get a Discord-facing version of this more easily, use [Self::get_staff_thread].
 	pub staff_thread: i64,
+	/// The ID of the thread on the user end of the ticket.
+	///
+	/// To get a Discord-facing version of this more easily, use [Self::get_user_thread].
+	pub user_thread: i64,
 }
 
 impl Ticket {
@@ -299,6 +303,13 @@ impl Ticket {
 	pub fn get_staff_thread(&self) -> Id<ChannelMarker> {
 		Id::new(discord_id_from_database_id(self.staff_thread))
 	}
+
+	/// The ID of the thread on the user end of the ticket.
+	///
+	/// For the raw database representation, use [Self::user_thread].
+	pub fn get_user_thread(&self) -> Id<ChannelMarker> {
+		Id::new(discord_id_from_database_id(self.user_thread))
+	}
 }
 
 /// The database representation of a message in a ticket
@@ -314,14 +325,16 @@ pub struct TicketMessage {
 	pub author: i64,
 	/// When the message was sent
 	pub send_time: DateTime<Utc>,
-	/// Whether this is an internal message (for server staff) or not (sent to non-staff user)
-	pub internal: bool,
 	/// The message content
 	pub body: String,
 	/// The ID of the staff thread post for this message.
 	///
 	/// To get a Discord-facing version of this more easily, use [Self::get_staff_message].
 	pub staff_message: i64,
+	/// The ID of the user thread post for this message. If not present, the message is internal to staff.
+	///
+	/// To get a Discord-facing version of this more easily, use [Self::get_user_message].
+	pub user_message: Option<i64>,
 }
 
 impl TicketMessage {
@@ -337,6 +350,14 @@ impl TicketMessage {
 	/// For the raw database representation, use [Self::staff_message].
 	pub fn get_staff_message(&self) -> Id<MessageMarker> {
 		Id::new(discord_id_from_database_id(self.staff_message))
+	}
+
+	/// The user thread post for this message. If not present, the message is internal to staff.
+	///
+	/// For the raw database representation, use [Self::user_message].
+	pub fn get_user_message(&self) -> Option<Id<MessageMarker>> {
+		self.user_message
+			.map(|message_id| Id::new(discord_id_from_database_id(message_id)))
 	}
 }
 

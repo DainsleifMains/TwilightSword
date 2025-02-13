@@ -12,6 +12,7 @@ use chrono::Utc;
 use diesel::prelude::*;
 use diesel::r2d2::{ConnectionManager, Pool};
 use miette::{bail, IntoDiagnostic};
+use std::future::IntoFuture;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use twilight_http::client::Client;
@@ -141,10 +142,27 @@ async fn handle_reply_modal(
 		kind: InteractionResponseType::ChannelMessageWithSource,
 		data: Some(response),
 	};
-	interaction_client
+	let response_future = interaction_client
 		.create_response(interaction.id, &interaction.token, &response)
-		.await
-		.into_diagnostic()?;
+		.into_future();
+
+	let with_user = ticket.get_with_user();
+	let user_message_content = format!("{}\n\n{}", with_user.mention(), message);
+	let mut user_allowed_mentions = AllowedMentions::default();
+	user_allowed_mentions.users.push(with_user);
+	let user_thread = ticket.get_user_thread();
+	let user_message_future = http_client
+		.create_message(user_thread)
+		.content(&user_message_content)
+		.allowed_mentions(Some(&user_allowed_mentions))
+		.into_future();
+
+	let (response_result, user_message_result) = tokio::join!(response_future, user_message_future);
+	response_result.into_diagnostic()?;
+	let user_message_response = user_message_result.into_diagnostic()?;
+	let user_message = user_message_response.model().await.into_diagnostic()?;
+	let user_message = Some(database_id_from_discord_id(user_message.id.get()));
+
 	let response_message = interaction_client
 		.response(&interaction.token)
 		.await
@@ -159,9 +177,9 @@ async fn handle_reply_modal(
 		ticket: ticket.id,
 		author: database_id_from_discord_id(message_author.get()),
 		send_time,
-		internal: false,
 		body: message.clone(),
 		staff_message,
+		user_message,
 	};
 
 	let mut db_connection = db_connection_pool.get().into_diagnostic()?;

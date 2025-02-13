@@ -121,9 +121,9 @@ diesel::table! {
 		ticket -> Text,
 		author -> Int8,
 		send_time -> Timestamptz,
-		internal -> Bool,
 		body -> Text,
 		staff_message -> Int8,
+		user_message -> Nullable<Int8>,
 	}
 }
 
@@ -140,6 +140,7 @@ diesel::table! {
 		custom_category -> Nullable<Text>,
 		is_open -> Bool,
 		staff_thread -> Int8,
+		user_thread -> Int8,
 	}
 }
 

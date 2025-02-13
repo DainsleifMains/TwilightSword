@@ -13,6 +13,7 @@ use diesel::prelude::*;
 use diesel::r2d2::{ConnectionManager, Pool};
 use diesel::result::Error as DbError;
 use miette::{bail, ensure, IntoDiagnostic};
+use std::future::IntoFuture;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use tokio::time::{sleep, Duration};
@@ -26,6 +27,7 @@ use twilight_model::channel::message::component::{
 	ActionRow, Button, ButtonStyle, Component, SelectMenu, SelectMenuOption, SelectMenuType, TextInput, TextInputStyle,
 };
 use twilight_model::channel::message::{AllowedMentions, MessageFlags};
+use twilight_model::channel::ChannelType;
 use twilight_model::gateway::payload::incoming::InteractionCreate;
 use twilight_model::http::interaction::{InteractionResponse, InteractionResponseType};
 use twilight_model::id::marker::ApplicationMarker;
@@ -715,10 +717,25 @@ async fn handle_message_modal_data(
 			.into_diagnostic()?;
 		return Ok(());
 	};
+	let Some(create_ticket_channel) = guild_data.get_start_ticket_channel() else {
+		let response = InteractionResponseDataBuilder::new()
+			.content("This server's ticket system is disabled.")
+			.components(Vec::new())
+			.build();
+		let response = InteractionResponse {
+			kind: InteractionResponseType::UpdateMessage,
+			data: Some(response),
+		};
+		interaction_client
+			.create_response(interaction.id, &interaction.token, &response)
+			.await
+			.into_diagnostic()?;
+		return Ok(());
+	};
 
 	let ticket_thread_message_content = format!("**Author**: {}\n\n{}", interaction_user.mention(), ticket_message);
 
-	let channel_id = match (
+	let staff_channel_id = match (
 		create_ticket_state.built_in_category,
 		create_ticket_state.custom_category_id.clone(),
 	) {
@@ -734,7 +751,7 @@ async fn handle_message_modal_data(
 		_ => bail!("Invalid category selection for new ticket creation"),
 	};
 
-	let Some(channel_id) = channel_id else {
+	let Some(staff_channel_id) = staff_channel_id else {
 		let response = InteractionResponseDataBuilder::new()
 			.content("The server is no longer accepting tickets of that category.")
 			.components(Vec::new())
@@ -750,16 +767,59 @@ async fn handle_message_modal_data(
 		return Ok(());
 	};
 
-	let ticket_thread_result = http_client
-		.create_forum_thread(channel_id, &ticket_title)
+	let user_ticket_thread_response = http_client
+		.create_thread(create_ticket_channel, &ticket_title, ChannelType::PrivateThread)
+		.invitable(false)
+		.await
+		.into_diagnostic()?;
+	let user_ticket_thread = user_ticket_thread_response.model().await.into_diagnostic()?;
+	http_client
+		.add_thread_member(user_ticket_thread.id, interaction_user.id)
+		.await
+		.into_diagnostic()?;
+
+	let staff_ticket_thread_future = http_client
+		.create_forum_thread(staff_channel_id, &ticket_title)
 		.message()
 		.content(&ticket_thread_message_content)
 		.allowed_mentions(Some(&AllowedMentions::default()))
-		.await;
-	let ticket_thread_response = match ticket_thread_result {
+		.into_future();
+
+	let user_ticket_message_content = format!("{}\n\n{}", interaction_user.id.mention(), ticket_message);
+	let mut user_ticket_allowed_mentions = AllowedMentions::default();
+	user_ticket_allowed_mentions.users.push(interaction_user.id);
+	let user_ticket_message_future = http_client
+		.create_message(user_ticket_thread.id)
+		.content(&user_ticket_message_content)
+		.allowed_mentions(Some(&user_ticket_allowed_mentions))
+		.into_future();
+
+	let (staff_ticket_thread_result, user_ticket_message_result) =
+		tokio::join!(staff_ticket_thread_future, user_ticket_message_future);
+
+	let staff_ticket_thread_response = match staff_ticket_thread_result {
 		Ok(response) => response,
 		Err(_) => {
 			let response_content = format!("This ticket couldn't be sent. In case you want it later, here's what you sent:\n**Title**: {}\n**Message**\n{}", ticket_title, ticket_message);
+			let response = InteractionResponseDataBuilder::new()
+				.content(response_content)
+				.components(Vec::new())
+				.build();
+			let response = InteractionResponse {
+				kind: InteractionResponseType::UpdateMessage,
+				data: Some(response),
+			};
+			interaction_client
+				.create_response(interaction.id, &interaction.token, &response)
+				.await
+				.into_diagnostic()?;
+			return Ok(());
+		}
+	};
+	let user_ticket_message_response = match user_ticket_message_result {
+		Ok(response) => response,
+		Err(_) => {
+			let response_content = format!("This ticket couldn't be sent. In case you want it later, here's what you sent:\n**Title**: {}\n**Message**:\n{}", ticket_title, ticket_message);
 			let response = InteractionResponseDataBuilder::new()
 				.content(response_content)
 				.components(Vec::new())
@@ -789,9 +849,13 @@ async fn handle_message_modal_data(
 		.await
 		.into_diagnostic()?;
 
-	let ticket_thread = ticket_thread_response.model().await.into_diagnostic()?;
-	let db_staff_thread_id = database_id_from_discord_id(ticket_thread.channel.id.get());
-	let db_staff_message_id = database_id_from_discord_id(ticket_thread.message.id.get());
+	let staff_ticket_thread = staff_ticket_thread_response.model().await.into_diagnostic()?;
+	let db_staff_thread_id = database_id_from_discord_id(staff_ticket_thread.channel.id.get());
+	let db_staff_message_id = database_id_from_discord_id(staff_ticket_thread.message.id.get());
+
+	let user_ticket_message = user_ticket_message_response.model().await.into_diagnostic()?;
+	let db_user_thread_id = database_id_from_discord_id(user_ticket_thread.id.get());
+	let db_user_message_id = database_id_from_discord_id(user_ticket_message.id.get());
 
 	let db_user_id = database_id_from_discord_id(interaction_user.id.get());
 	let new_ticket = Ticket {
@@ -805,15 +869,16 @@ async fn handle_message_modal_data(
 		custom_category: create_ticket_state.custom_category_id,
 		is_open: true,
 		staff_thread: db_staff_thread_id,
+		user_thread: db_user_thread_id,
 	};
 	let new_ticket_message = TicketMessage {
 		id: cuid2::create_id(),
 		ticket: create_id.to_string(),
 		author: db_user_id,
 		send_time: Utc::now(),
-		internal: false,
 		body: ticket_message.clone(),
 		staff_message: db_staff_message_id,
+		user_message: Some(db_user_message_id),
 	};
 	let pending_partnership = invite_data.map(|invite_data| PendingPartnership {
 		id: cuid2::create_id(),

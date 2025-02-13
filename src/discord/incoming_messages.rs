@@ -11,7 +11,8 @@ use diesel::prelude::*;
 use diesel::r2d2::{ConnectionManager, Pool};
 use miette::IntoDiagnostic;
 use twilight_http::client::Client;
-use twilight_model::channel::message::{Message, MessageReferenceType};
+use twilight_mention::fmt::Mention;
+use twilight_model::channel::message::{AllowedMentions, Message, MessageReferenceType};
 
 pub async fn handle_message(
 	message: &Message,
@@ -50,7 +51,7 @@ pub async fn handle_message(
 			.filter(
 				ticket_messages::staff_message
 					.eq(db_message_id)
-					.and(ticket_messages::internal.eq(false)),
+					.and(ticket_messages::user_message.is_not_null()),
 			)
 			.first(&mut db_connection)
 			.optional()
@@ -64,6 +65,24 @@ pub async fn handle_message(
 		return Ok(());
 	};
 
+	let user_message = if internal {
+		None
+	} else {
+		let user_thread = ticket.get_user_thread();
+		let user = ticket.get_with_user();
+		let user_message_content = format!("{}\n\n{}", user.mention(), &message.content);
+		let mut allowed_mentions = AllowedMentions::default();
+		allowed_mentions.users.push(user);
+		let message_response = http_client
+			.create_message(user_thread)
+			.content(&user_message_content)
+			.allowed_mentions(Some(&allowed_mentions))
+			.await
+			.into_diagnostic()?;
+		let message = message_response.model().await.into_diagnostic()?;
+		Some(database_id_from_discord_id(message.id.get()))
+	};
+
 	let author = database_id_from_discord_id(message.author.id.get());
 	let staff_message = database_id_from_discord_id(message.id.get());
 	let new_message = TicketMessage {
@@ -71,9 +90,9 @@ pub async fn handle_message(
 		ticket: ticket.id,
 		author,
 		send_time: message_time,
-		internal,
 		body: message.content.clone(),
 		staff_message,
+		user_message,
 	};
 	diesel::insert_into(ticket_messages::table)
 		.values(new_message)
