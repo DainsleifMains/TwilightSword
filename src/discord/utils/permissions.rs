@@ -26,6 +26,12 @@ pub fn ticket_channel_permissions() -> Permissions {
 		| Permissions::MANAGE_THREADS
 }
 
+/// Generates the message to send when setting up a channel that doesn't have the necessary permissions to be a ticket channel.
+pub fn ticket_channel_missing_permissions_message(channel_mention: impl std::fmt::Display) -> String {
+	format!("The channel {} does not have the necessary permissions (View Channel, Read Message History, Send Messages, Send Messages in Threads, Create Public Threads, Manage Threads) in the ticket channel to create, update, and manage tickets.", channel_mention)
+}
+
+/// Gets the list of permissions the bot has in the passed-in channel. The channel ID must reference a channel on the passed-in guild.
 pub async fn channel_permissions(
 	guild_id: Id<GuildMarker>,
 	channel_id: Id<ChannelMarker>,

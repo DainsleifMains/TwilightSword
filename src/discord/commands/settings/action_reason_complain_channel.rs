@@ -5,7 +5,7 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use crate::discord::utils::permissions::channel_permissions;
-use crate::discord::utils::responses::NOT_SET_UP_FOR_GUILD;
+use crate::discord::utils::setup::NOT_SET_UP_FOR_GUILD;
 use crate::model::{database_id_from_discord_id, Guild};
 use crate::schema::guilds;
 use diesel::prelude::*;

@@ -6,5 +6,5 @@
 
 pub mod invites;
 pub mod permissions;
-pub mod responses;
+pub mod setup;
 pub mod timestamp;
