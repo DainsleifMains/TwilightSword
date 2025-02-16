@@ -10,6 +10,7 @@ use crate::schema::{ticket_messages, tickets};
 use diesel::prelude::*;
 use diesel::r2d2::{ConnectionManager, Pool};
 use miette::IntoDiagnostic;
+use std::future::IntoFuture;
 use twilight_http::client::Client;
 use twilight_mention::fmt::Mention;
 use twilight_model::channel::message::{AllowedMentions, Message, MessageReferenceType};
@@ -29,13 +30,19 @@ pub async fn handle_message(
 
 	let db_channel_id = database_id_from_discord_id(message.channel_id.get());
 	let ticket: Option<Ticket> = tickets::table
-		.filter(tickets::staff_thread.eq(db_channel_id))
+		.filter(
+			tickets::staff_thread
+				.eq(db_channel_id)
+				.or(tickets::user_thread.eq(db_channel_id))
+				.and(tickets::is_open.eq(true)),
+		)
 		.first(&mut db_connection)
 		.optional()
 		.into_diagnostic()?;
 	let Some(ticket) = ticket else {
 		return Ok(());
 	};
+	let message_from_staff = ticket.staff_thread == db_channel_id;
 
 	let reply_message_id = message.reference.as_ref().and_then(|message_reference| {
 		if message_reference.kind == MessageReferenceType::Default {
@@ -45,46 +52,95 @@ pub async fn handle_message(
 		}
 	});
 
-	let internal = if let Some(message_id) = reply_message_id {
-		let db_message_id = database_id_from_discord_id(message_id.get());
-		let message: Option<TicketMessage> = ticket_messages::table
-			.filter(
-				ticket_messages::staff_message
-					.eq(db_message_id)
-					.and(ticket_messages::user_message.is_not_null()),
-			)
-			.first(&mut db_connection)
-			.optional()
-			.into_diagnostic()?;
-		message.is_none()
+	let internal = if message_from_staff {
+		if let Some(message_id) = reply_message_id {
+			let db_message_id = database_id_from_discord_id(message_id.get());
+			let message: Option<TicketMessage> = ticket_messages::table
+				.filter(
+					ticket_messages::staff_message
+						.eq(db_message_id)
+						.and(ticket_messages::user_message.is_not_null()),
+				)
+				.first(&mut db_connection)
+				.optional()
+				.into_diagnostic()?;
+			message.is_none()
+		} else {
+			true
+		}
 	} else {
-		true
+		false
 	};
 
 	let Some(message_time) = datetime_from_timestamp(&message.timestamp) else {
 		return Ok(());
 	};
 
-	let user_message = if internal {
+	let staff_message_future = if internal {
+		None
+	} else {
+		Some(
+			http_client
+				.create_message(ticket.get_staff_thread())
+				.content(&message.content)
+				.allowed_mentions(Some(&AllowedMentions::default()))
+				.into_future(),
+		)
+	};
+
+	let user_message_future = if internal {
 		None
 	} else {
 		let user_thread = ticket.get_user_thread();
 		let user = ticket.get_with_user();
-		let user_message_content = format!("{}\n\n{}", user.mention(), &message.content);
+		let user_message_content = if message_from_staff {
+			format!("{}\n\n{}", user.mention(), &message.content)
+		} else {
+			message.content.clone()
+		};
 		let mut allowed_mentions = AllowedMentions::default();
 		allowed_mentions.users.push(user);
-		let message_response = http_client
-			.create_message(user_thread)
-			.content(&user_message_content)
-			.allowed_mentions(Some(&allowed_mentions))
-			.await
-			.into_diagnostic()?;
-		let message = message_response.model().await.into_diagnostic()?;
-		Some(database_id_from_discord_id(message.id.get()))
+		Some(
+			http_client
+				.create_message(user_thread)
+				.content(&user_message_content)
+				.allowed_mentions(Some(&allowed_mentions))
+				.into_future(),
+		)
+	};
+
+	let (staff_message_result, user_message_result) = match (staff_message_future, user_message_future) {
+		(Some(staff_future), Some(user_future)) => {
+			let (staff, user) = tokio::join!(staff_future, user_future);
+			(Some(staff), Some(user))
+		}
+		(Some(staff_future), None) => (Some(staff_future.await), None),
+		(None, Some(user_future)) => (None, Some(user_future.await)),
+		(None, None) => (None, None),
+	};
+	let staff_message = match staff_message_result {
+		Some(result) => {
+			let response = result.into_diagnostic()?;
+			Some(response.model().await.into_diagnostic()?)
+		}
+		None => None,
+	};
+	let user_message = match user_message_result {
+		Some(result) => {
+			let response = result.into_diagnostic()?;
+			Some(response.model().await.into_diagnostic()?)
+		}
+		None => None,
+	};
+
+	let staff_message_id = match staff_message {
+		Some(message) => message.id,
+		None => message.id,
 	};
 
 	let author = database_id_from_discord_id(message.author.id.get());
-	let staff_message = database_id_from_discord_id(message.id.get());
+	let staff_message = database_id_from_discord_id(staff_message_id.get());
+	let user_message = user_message.map(|message| database_id_from_discord_id(message.id.get()));
 	let new_message = TicketMessage {
 		id: cuid2::create_id(),
 		ticket: ticket.id,
