@@ -4,6 +4,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+use super::utils::tickets::{staff_message, user_message, UserMessageAuthor};
 use super::utils::timestamp::datetime_from_timestamp;
 use crate::model::{database_id_from_discord_id, Ticket, TicketMessage};
 use crate::schema::{ticket_messages, tickets};
@@ -12,8 +13,7 @@ use diesel::r2d2::{ConnectionManager, Pool};
 use miette::IntoDiagnostic;
 use std::future::IntoFuture;
 use twilight_http::client::Client;
-use twilight_mention::fmt::Mention;
-use twilight_model::channel::message::{AllowedMentions, Message, MessageReferenceType};
+use twilight_model::channel::message::{Message, MessageReferenceType};
 
 pub async fn handle_message(
 	message: &Message,
@@ -79,34 +79,36 @@ pub async fn handle_message(
 	let staff_message_future = if internal {
 		None
 	} else {
-		Some(
-			http_client
-				.create_message(ticket.get_staff_thread())
-				.content(&message.content)
-				.allowed_mentions(Some(&AllowedMentions::default()))
-				.into_future(),
-		)
+		let Ok(staff_message_data) = staff_message(&message.author.name, &message.content, message.timestamp) else {
+			return Ok(());
+		};
+		let staff_thread = ticket.get_staff_thread();
+
+		let staff_message_create = staff_message_data.set_create_message_data(http_client.create_message(staff_thread));
+		let staff_message_future = staff_message_create
+			.embeds(&staff_message_data.embeds)
+			.allowed_mentions(Some(&staff_message_data.allowed_mentions))
+			.into_future();
+		Some(staff_message_future)
 	};
 
 	let user_message_future = if internal {
 		None
 	} else {
-		let user_thread = ticket.get_user_thread();
 		let user = ticket.get_with_user();
-		let user_message_content = if message_from_staff {
-			format!("{}\n\n{}", user.mention(), &message.content)
+		let author = if message_from_staff {
+			UserMessageAuthor::Staff
 		} else {
-			message.content.clone()
+			UserMessageAuthor::User(message.author.name.clone())
 		};
-		let mut allowed_mentions = AllowedMentions::default();
-		allowed_mentions.users.push(user);
-		Some(
-			http_client
-				.create_message(user_thread)
-				.content(&user_message_content)
-				.allowed_mentions(Some(&allowed_mentions))
-				.into_future(),
-		)
+		let Ok(user_message_data) = user_message(author, user, message_from_staff, &message.content, message.timestamp)
+		else {
+			return Ok(());
+		};
+		let user_thread = ticket.get_user_thread();
+		let user_message_create = user_message_data.set_create_message_data(http_client.create_message(user_thread));
+		let user_message_future = user_message_create.into_future();
+		Some(user_message_future)
 	};
 
 	let (staff_message_result, user_message_result) = match (staff_message_future, user_message_future) {
@@ -118,6 +120,7 @@ pub async fn handle_message(
 		(None, Some(user_future)) => (None, Some(user_future.await)),
 		(None, None) => (None, None),
 	};
+
 	let staff_message = match staff_message_result {
 		Some(result) => {
 			let response = result.into_diagnostic()?;
@@ -125,6 +128,7 @@ pub async fn handle_message(
 		}
 		None => None,
 	};
+
 	let user_message = match user_message_result {
 		Some(result) => {
 			let response = result.into_diagnostic()?;

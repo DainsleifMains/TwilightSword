@@ -5,7 +5,8 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use crate::discord::state::reply::ReplyStates;
-use crate::discord::utils::timestamp::datetime_from_id;
+use crate::discord::utils::tickets::{staff_message, user_message, UserMessageAuthor};
+use crate::discord::utils::timestamp::{datetime_from_id, timestamp_from_id};
 use crate::model::{database_id_from_discord_id, TicketMessage};
 use crate::schema::ticket_messages;
 use chrono::Utc;
@@ -16,9 +17,8 @@ use std::future::IntoFuture;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use twilight_http::client::Client;
-use twilight_mention::fmt::Mention;
 use twilight_model::application::interaction::modal::ModalInteractionData;
-use twilight_model::channel::message::{AllowedMentions, MessageFlags};
+use twilight_model::channel::message::MessageFlags;
 use twilight_model::gateway::payload::incoming::InteractionCreate;
 use twilight_model::http::interaction::{InteractionResponse, InteractionResponseType};
 use twilight_model::id::marker::ApplicationMarker;
@@ -100,7 +100,7 @@ async fn handle_reply_modal(
 		return Ok(());
 	};
 
-	let Some(message_author) = interaction.author_id() else {
+	let Some(message_author) = interaction.author() else {
 		bail!("Modal submitted by a non-user");
 	};
 
@@ -133,29 +133,66 @@ async fn handle_reply_modal(
 	};
 	let ticket = reply_state.ticket;
 
-	let response_content = format!("Ticket response from {}:\n\n{}", message_author.mention(), message);
-	let response = InteractionResponseDataBuilder::new()
-		.content(response_content)
-		.allowed_mentions(AllowedMentions::default())
-		.build();
+	let staff_message_data = match staff_message(
+		&message_author.name,
+		&message,
+		timestamp_from_id(interaction.id).into_diagnostic()?,
+	) {
+		Ok(message) => message,
+		Err(_) => {
+			let response = InteractionResponseDataBuilder::new()
+				.content("This message can't be posted in a Discord embed, so it couldn't be published.")
+				.flags(MessageFlags::EPHEMERAL)
+				.build();
+			let response = InteractionResponse {
+				kind: InteractionResponseType::ChannelMessageWithSource,
+				data: Some(response),
+			};
+			interaction_client
+				.create_response(interaction.id, &interaction.token, &response)
+				.await
+				.into_diagnostic()?;
+			return Ok(());
+		}
+	};
+
+	let with_user = ticket.get_with_user();
+	let user_message_data = match user_message(
+		UserMessageAuthor::Staff,
+		with_user,
+		true,
+		&message,
+		timestamp_from_id(interaction.id).into_diagnostic()?,
+	) {
+		Ok(message) => message,
+		Err(_) => {
+			let response = InteractionResponseDataBuilder::new()
+				.content("This message can't be posted in a Discord embed, so it couldn't be published.")
+				.flags(MessageFlags::EPHEMERAL)
+				.build();
+			let response = InteractionResponse {
+				kind: InteractionResponseType::ChannelMessageWithSource,
+				data: Some(response),
+			};
+			interaction_client
+				.create_response(interaction.id, &interaction.token, &response)
+				.await
+				.into_diagnostic()?;
+			return Ok(());
+		}
+	};
+
 	let response = InteractionResponse {
 		kind: InteractionResponseType::ChannelMessageWithSource,
-		data: Some(response),
+		data: Some(staff_message_data.into()),
 	};
 	let response_future = interaction_client
 		.create_response(interaction.id, &interaction.token, &response)
 		.into_future();
 
-	let with_user = ticket.get_with_user();
-	let user_message_content = format!("{}\n\n{}", with_user.mention(), message);
-	let mut user_allowed_mentions = AllowedMentions::default();
-	user_allowed_mentions.users.push(with_user);
 	let user_thread = ticket.get_user_thread();
-	let user_message_future = http_client
-		.create_message(user_thread)
-		.content(&user_message_content)
-		.allowed_mentions(Some(&user_allowed_mentions))
-		.into_future();
+	let user_message_create = user_message_data.set_create_message_data(http_client.create_message(user_thread));
+	let user_message_future = user_message_create.into_future();
 
 	let (response_result, user_message_result) = tokio::join!(response_future, user_message_future);
 	response_result.into_diagnostic()?;
@@ -175,7 +212,7 @@ async fn handle_reply_modal(
 	let ticket_message = TicketMessage {
 		id: reply_id.to_string(),
 		ticket: ticket.id,
-		author: database_id_from_discord_id(message_author.get()),
+		author: database_id_from_discord_id(message_author.id.get()),
 		send_time,
 		body: message.clone(),
 		staff_message,
