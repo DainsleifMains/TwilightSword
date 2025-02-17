@@ -34,7 +34,7 @@ pub async fn handle_message(
 			tickets::staff_thread
 				.eq(db_channel_id)
 				.or(tickets::user_thread.eq(db_channel_id))
-				.and(tickets::is_open.eq(true)),
+				.and(tickets::closed_at.is_null()),
 		)
 		.first(&mut db_connection)
 		.optional()

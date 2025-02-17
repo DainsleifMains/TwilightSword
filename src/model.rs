@@ -270,8 +270,6 @@ pub struct Ticket {
 	pub built_in_category: Option<BuiltInTicketCategory>,
 	/// If the ticket is using a custom category, the ID of the custom category
 	pub custom_category: Option<String>,
-	/// Whether the ticket is currently open
-	pub is_open: bool,
 	/// The ID of the thread on the staff end of the ticket.
 	///
 	/// To get a Discord-facing version of this more easily, use [Self::get_staff_thread].
@@ -280,6 +278,8 @@ pub struct Ticket {
 	///
 	/// To get a Discord-facing version of this more easily, use [Self::get_user_thread].
 	pub user_thread: i64,
+	/// When the ticket was closed. If not specified, the ticket is still open.
+	pub closed_at: Option<DateTime<Utc>>,
 }
 
 impl Ticket {
@@ -309,6 +309,11 @@ impl Ticket {
 	/// For the raw database representation, use [Self::user_thread].
 	pub fn get_user_thread(&self) -> Id<ChannelMarker> {
 		Id::new(discord_id_from_database_id(self.user_thread))
+	}
+
+	/// Whether the ticket is currently open
+	pub fn is_open(&self) -> bool {
+		self.closed_at.is_none()
 	}
 }
 

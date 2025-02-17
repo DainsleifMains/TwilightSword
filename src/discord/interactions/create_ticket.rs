@@ -867,9 +867,9 @@ async fn handle_message_modal_data(
 			.built_in_category
 			.map(|category| category.to_database()),
 		custom_category: create_ticket_state.custom_category_id,
-		is_open: true,
 		staff_thread: db_staff_thread_id,
 		user_thread: db_user_thread_id,
+		closed_at: None,
 	};
 	let new_ticket_message = TicketMessage {
 		id: cuid2::create_id(),

@@ -97,7 +97,7 @@ async fn get_user_tickets(guild_id: Option<u64>) -> Result<Vec<TicketMetadata>, 
 			tickets::guild
 				.eq(db_guild_id)
 				.and(tickets::with_user.eq(db_user_id))
-				.and(tickets::is_open.eq(true)),
+				.and(tickets::closed_at.is_null()),
 		)
 		.load(&mut db_connection)?;
 
