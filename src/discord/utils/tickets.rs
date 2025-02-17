@@ -17,6 +17,8 @@ use twilight_util::builder::embed::{EmbedAuthorBuilder, EmbedBuilder};
 use twilight_util::builder::InteractionResponseDataBuilder;
 use twilight_validate::embed::EmbedValidationError;
 
+pub const MAX_TICKET_TITLE_LENGTH: u16 = 60;
+
 /// Indicates the author of a message being sent on the user end of the ticket
 pub enum UserMessageAuthor {
 	User(String),

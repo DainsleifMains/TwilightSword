@@ -13,3 +13,4 @@ mod state;
 mod utils;
 
 pub use connection::{run_bot, set_up_client};
+pub use utils::tickets::MAX_TICKET_TITLE_LENGTH;

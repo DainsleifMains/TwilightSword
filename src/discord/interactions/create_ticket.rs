@@ -6,6 +6,7 @@
 
 use crate::discord::state::create_ticket::{BuiltInCategory, CreateTicketState, CreateTicketStates};
 use crate::discord::utils::invites::invite_code_from_url;
+use crate::discord::utils::tickets::MAX_TICKET_TITLE_LENGTH;
 use crate::model::{database_id_from_discord_id, CustomCategory, Guild, PendingPartnership, Ticket, TicketMessage};
 use crate::schema::{custom_categories, guilds, pending_partnerships, ticket_messages, tickets};
 use chrono::Utc;
@@ -463,7 +464,7 @@ async fn confirm_category(
 	let title_input = Component::TextInput(TextInput {
 		custom_id: String::from("title"),
 		label: String::from("Ticket Title"),
-		max_length: None,
+		max_length: Some(MAX_TICKET_TITLE_LENGTH),
 		min_length: None,
 		placeholder: Some(String::from("Title")),
 		required: Some(true),
@@ -555,6 +556,26 @@ async fn handle_message_modal_data(
 			.into_diagnostic()?;
 		return Ok(());
 	};
+
+	if ticket_title.len() > MAX_TICKET_TITLE_LENGTH.into() {
+		let response = format!(
+			"Your ticket couldn't be sent, as the title is too long.\n{}",
+			try_again_text(&ticket_title, &ticket_message)
+		);
+		let response = InteractionResponseDataBuilder::new()
+			.content(response)
+			.components(Vec::new())
+			.build();
+		let response = InteractionResponse {
+			kind: InteractionResponseType::UpdateMessage,
+			data: Some(response),
+		};
+		interaction_client
+			.create_response(interaction.id, &interaction.token, &response)
+			.await
+			.into_diagnostic()?;
+		return Ok(());
+	}
 
 	let create_ticket_state = {
 		let mut state = bot_state.write().await;
@@ -778,8 +799,9 @@ async fn handle_message_modal_data(
 		.await
 		.into_diagnostic()?;
 
+	let staff_ticket_title = format!("{} [{}]", ticket_title, interaction_user.name);
 	let staff_ticket_thread_future = http_client
-		.create_forum_thread(staff_channel_id, &ticket_title)
+		.create_forum_thread(staff_channel_id, &staff_ticket_title)
 		.message()
 		.content(&ticket_thread_message_content)
 		.allowed_mentions(Some(&AllowedMentions::default()))
