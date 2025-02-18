@@ -4,7 +4,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-use crate::model::Guild;
+use crate::model::{database_id_from_discord_id, Guild};
 use crate::schema::guilds;
 use crate::web::session_key::DISCORD_USER;
 use crate::web::state::AppState;
@@ -42,6 +42,28 @@ pub async fn get_guild_id_from_request(client_guild_id: Option<u64>) -> Result<O
 	};
 
 	Ok(guild_id)
+}
+
+pub async fn get_guild_data_from_request(client_guild_id: Option<u64>) -> Result<Option<Guild>, ServerFnError> {
+	let state: AppState = expect_context();
+
+	let mut db_connection = state.db_connection_pool.get()?;
+
+	let Host(host) = extract_with_state(&state).await?;
+	let host_guild: Option<Guild> = guilds::table
+		.filter(guilds::custom_host.eq(&host))
+		.first(&mut db_connection)
+		.optional()?;
+	match (client_guild_id, host_guild) {
+		(Some(_), Some(_)) => Ok(None),
+		(Some(guild_id), None) => {
+			let db_guild_id = database_id_from_discord_id(guild_id);
+			let guild: Option<Guild> = guilds::table.find(db_guild_id).first(&mut db_connection).optional()?;
+			Ok(guild)
+		}
+		(None, Some(host_guild)) => Ok(Some(host_guild)),
+		(None, None) => Ok(None),
+	}
 }
 
 /// Gets the user ID for a request.

@@ -236,7 +236,7 @@ fn selectable_categories_for_guild(
 			continue;
 		}
 		let category_id = format!("default/{}", built_in_category.as_id());
-		let category_name = built_in_category.name().to_string();
+		let category_name = format!("{}", built_in_category);
 		available_ticket_categories.push((category_id, category_name));
 	}
 
@@ -431,7 +431,7 @@ async fn confirm_category(
 	};
 
 	let category_name = match (selected_built_in_category, selected_custom_category) {
-		(Some(category), _) => category.name().to_string(),
+		(Some(category), _) => format!("{}", category),
 		(_, Some(category_id)) => {
 			let mut db_connection = db_connection_pool.get().into_diagnostic()?;
 			let category: CustomCategory = custom_categories::table

@@ -4,16 +4,18 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+use chrono::{DateTime, Utc};
 use leptos::prelude::*;
 use leptos_router::params::Params;
+use reactive_stores::Store;
 use serde::{Deserialize, Serialize};
 
-#[derive(Params, PartialEq)]
+#[derive(Debug, Params, PartialEq)]
 pub struct GuildParam {
 	pub guild: Option<u64>,
 }
 
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct GuildData {
 	pub name: String,
 	pub icon_image_url: Option<String>,
@@ -41,4 +43,27 @@ pub async fn get_guild_data(guild_id: Option<u64>) -> Result<Option<GuildData>, 
 		.map(|icon_hash| format!("https://cdn.discordapp.com/icons/{}/{}.png", guild_id, icon_hash));
 
 	Ok(Some(GuildData { name, icon_image_url }))
+}
+
+#[derive(Clone, Debug, Params, PartialEq)]
+pub struct TicketParams {
+	pub guild: Option<u64>,
+	pub ticket: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, Store)]
+pub struct TicketData {
+	pub title: String,
+	pub category_name: String,
+	#[store(key: String = |message| message.id.clone())]
+	pub messages: Vec<TicketMessage>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct TicketMessage {
+	pub id: String,
+	pub author_name: String,
+	pub send_time: DateTime<Utc>,
+	pub internal: bool,
+	pub body: String,
 }

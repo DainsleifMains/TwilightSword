@@ -4,12 +4,11 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-pub mod app;
-mod errors;
-mod guild;
-mod header;
-#[cfg(feature = "ssr")]
-mod server_utils;
-#[cfg(feature = "ssr")]
-pub mod shell;
-mod utils;
+use leptos::prelude::*;
+
+#[component]
+pub fn NotFound() -> impl IntoView {
+	view! {
+		"Page not found."
+	}
+}

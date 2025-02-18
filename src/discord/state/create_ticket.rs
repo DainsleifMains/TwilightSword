@@ -6,6 +6,7 @@
 
 use crate::model::{BuiltInTicketCategory, Guild};
 use std::collections::HashMap;
+use std::fmt;
 use twilight_model::channel::message::component::{ActionRow, Button, ButtonStyle, Component};
 
 #[derive(Clone, Copy, Debug)]
@@ -49,15 +50,6 @@ impl BuiltInCategory {
 		matches!(self, Self::NewPartner | Self::ExistingPartner)
 	}
 
-	pub fn name(&self) -> &'static str {
-		match self {
-			Self::BanAppeal => "Ban Appeal",
-			Self::NewPartner => "New Partner",
-			Self::ExistingPartner => "Existing Partner",
-			Self::MessageReport => "Message Report",
-		}
-	}
-
 	pub fn is_enabled_for_guild(&self, guild: &Guild) -> bool {
 		match self {
 			Self::BanAppeal => guild.ban_appeal_ticket_channel.is_some(),
@@ -74,6 +66,13 @@ impl BuiltInCategory {
 			Self::ExistingPartner => BuiltInTicketCategory::ExistingPartner,
 			Self::MessageReport => BuiltInTicketCategory::MessageReport,
 		}
+	}
+}
+
+impl fmt::Display for BuiltInCategory {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		let db_category = self.to_database();
+		write!(f, "{}", db_category)
 	}
 }
 

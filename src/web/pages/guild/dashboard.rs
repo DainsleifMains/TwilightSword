@@ -4,7 +4,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-use super::utils::GuildParam;
+use crate::web::pages::utils::GuildParam;
 use leptos::prelude::*;
 use leptos_router::hooks::use_params;
 use serde::{Deserialize, Serialize};
@@ -73,9 +73,9 @@ pub struct TicketMetadata {
 
 #[server]
 async fn get_user_tickets(guild_id: Option<u64>) -> Result<Vec<TicketMetadata>, ServerFnError> {
-	use super::server_utils::{get_guild_id_from_request, get_user_id_from_request};
 	use crate::model::{database_id_from_discord_id, Ticket};
 	use crate::schema::tickets;
+	use crate::web::pages::server_utils::{get_guild_id_from_request, get_user_id_from_request};
 	use crate::web::state::AppState;
 	use diesel::prelude::*;
 

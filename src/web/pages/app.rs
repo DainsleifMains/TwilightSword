@@ -4,9 +4,10 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-use super::dashboard::Dashboard;
 use super::errors::error::Error;
 use super::errors::not_found::NotFound;
+use super::guild::dashboard::Dashboard;
+use super::guild::ticket::TicketPage;
 use super::header::PageHeader;
 use super::utils::{get_guild_data, GuildParam};
 use leptos::prelude::*;
@@ -25,8 +26,9 @@ pub fn App() -> impl IntoView {
 		<Title text="Twilight Sword" />
 
 		<Router>
-			<Routes fallback=|| "Not found.">
+			<Routes fallback=|| view! { NotFound }>
 				<ParentRoute path=path!("/:guild?") view=MainPage>
+					<Route path=path!("/ticket/:ticket") view=TicketPage />
 					<Route path=path!("/") view=Dashboard />
 				</ParentRoute>
 			</Routes>

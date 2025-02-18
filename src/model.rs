@@ -12,6 +12,7 @@ use bigdecimal::BigDecimal;
 use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 use diesel_derive_enum::DbEnum;
+use std::fmt;
 use twilight_model::id::marker::{ChannelMarker, GuildMarker, MessageMarker, RoleMarker, UserMarker};
 use twilight_model::id::Id;
 
@@ -22,6 +23,18 @@ pub enum BuiltInTicketCategory {
 	NewPartner,
 	ExistingPartner,
 	MessageReport,
+}
+
+impl fmt::Display for BuiltInTicketCategory {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		let name = match self {
+			Self::BanAppeal => "Ban Appeal",
+			Self::NewPartner => "New Partner",
+			Self::ExistingPartner => "Existing Partner",
+			Self::MessageReport => "Message Report",
+		};
+		write!(f, "{}", name)
+	}
 }
 
 #[derive(DbEnum, Debug)]
