@@ -13,7 +13,7 @@ use axum::middleware::Next;
 use axum::response::{IntoResponse, Redirect, Response};
 use miette::IntoDiagnostic;
 use oauth2::basic::BasicClient;
-use oauth2::reqwest::{redirect, ClientBuilder};
+use oauth2::reqwest::{ClientBuilder, redirect};
 use oauth2::{
 	AuthUrl, AuthorizationCode, ClientId, ClientSecret, CsrfToken, EndpointNotSet, EndpointSet, PkceCodeChallenge,
 	PkceCodeVerifier, RedirectUrl, Scope, TokenResponse, TokenUrl,
@@ -21,8 +21,8 @@ use oauth2::{
 use serde::Deserialize;
 use tower_sessions::Session;
 use twilight_http::client::Client;
-use twilight_model::id::marker::UserMarker;
 use twilight_model::id::Id;
+use twilight_model::id::marker::UserMarker;
 
 pub const DISCORD_AUTH_URL: &str = "https://discord.com/oauth2/authorize";
 pub const DISCORD_AUTH_TOKEN_URL: &str = "https://discord.com/api/oauth2/token";

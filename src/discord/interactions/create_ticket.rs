@@ -7,32 +7,31 @@
 use crate::discord::state::create_ticket::{BuiltInCategory, CreateTicketState, CreateTicketStates};
 use crate::discord::utils::invites::invite_code_from_url;
 use crate::discord::utils::tickets::MAX_TICKET_TITLE_LENGTH;
-use crate::model::{database_id_from_discord_id, CustomCategory, Guild, PendingPartnership, Ticket, TicketMessage};
+use crate::model::{CustomCategory, Guild, PendingPartnership, Ticket, TicketMessage, database_id_from_discord_id};
 use crate::schema::{custom_categories, guilds, pending_partnerships, ticket_messages, tickets};
 use chrono::Utc;
 use diesel::prelude::*;
 use diesel::r2d2::{ConnectionManager, Pool};
 use diesel::result::Error as DbError;
-use miette::{bail, ensure, IntoDiagnostic};
-use std::future::IntoFuture;
+use miette::{IntoDiagnostic, bail, ensure};
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use tokio::time::{sleep, Duration};
+use tokio::time::{Duration, sleep};
 use twilight_http::client::Client;
 use twilight_http::error::ErrorType;
 use twilight_http::response::StatusCode;
 use twilight_mention::fmt::Mention;
 use twilight_model::application::interaction::message_component::MessageComponentInteractionData;
 use twilight_model::application::interaction::modal::ModalInteractionData;
+use twilight_model::channel::ChannelType;
 use twilight_model::channel::message::component::{
 	ActionRow, Button, ButtonStyle, Component, SelectMenu, SelectMenuOption, SelectMenuType, TextInput, TextInputStyle,
 };
 use twilight_model::channel::message::{AllowedMentions, MessageFlags};
-use twilight_model::channel::ChannelType;
 use twilight_model::gateway::payload::incoming::InteractionCreate;
 use twilight_model::http::interaction::{InteractionResponse, InteractionResponseType};
-use twilight_model::id::marker::ApplicationMarker;
 use twilight_model::id::Id;
+use twilight_model::id::marker::ApplicationMarker;
 use twilight_util::builder::InteractionResponseDataBuilder;
 use type_map::concurrent::TypeMap;
 
@@ -822,7 +821,10 @@ async fn handle_message_modal_data(
 	let staff_ticket_thread_response = match staff_ticket_thread_result {
 		Ok(response) => response,
 		Err(_) => {
-			let response_content = format!("This ticket couldn't be sent. In case you want it later, here's what you sent:\n**Title**: {}\n**Message**\n{}", ticket_title, ticket_message);
+			let response_content = format!(
+				"This ticket couldn't be sent. In case you want it later, here's what you sent:\n**Title**: {}\n**Message**\n{}",
+				ticket_title, ticket_message
+			);
 			let response = InteractionResponseDataBuilder::new()
 				.content(response_content)
 				.components(Vec::new())
@@ -841,7 +843,10 @@ async fn handle_message_modal_data(
 	let user_ticket_message_response = match user_ticket_message_result {
 		Ok(response) => response,
 		Err(_) => {
-			let response_content = format!("This ticket couldn't be sent. In case you want it later, here's what you sent:\n**Title**: {}\n**Message**:\n{}", ticket_title, ticket_message);
+			let response_content = format!(
+				"This ticket couldn't be sent. In case you want it later, here's what you sent:\n**Title**: {}\n**Message**:\n{}",
+				ticket_title, ticket_message
+			);
 			let response = InteractionResponseDataBuilder::new()
 				.content(response_content)
 				.components(Vec::new())

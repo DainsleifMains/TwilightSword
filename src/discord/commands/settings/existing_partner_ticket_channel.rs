@@ -8,23 +8,23 @@ use crate::discord::utils::permissions::{
 	channel_permissions, ticket_channel_missing_permissions_message, ticket_channel_permissions,
 };
 use crate::discord::utils::setup::NOT_SET_UP_FOR_GUILD;
-use crate::model::{database_id_from_discord_id, Guild};
+use crate::model::{Guild, database_id_from_discord_id};
 use crate::schema::guilds;
 use diesel::prelude::*;
 use diesel::r2d2::{ConnectionManager, Pool};
-use miette::{bail, ensure, IntoDiagnostic};
+use miette::{IntoDiagnostic, bail, ensure};
 use twilight_http::client::Client;
 use twilight_mention::fmt::Mention;
 use twilight_model::application::command::CommandOption;
 use twilight_model::application::interaction::application_command::CommandOptionValue;
-use twilight_model::channel::message::{AllowedMentions, MessageFlags};
 use twilight_model::channel::ChannelType;
+use twilight_model::channel::message::{AllowedMentions, MessageFlags};
 use twilight_model::gateway::payload::incoming::InteractionCreate;
 use twilight_model::http::interaction::{InteractionResponse, InteractionResponseType};
-use twilight_model::id::marker::{ApplicationMarker, GuildMarker};
 use twilight_model::id::Id;
-use twilight_util::builder::command::{ChannelBuilder, SubCommandBuilder, SubCommandGroupBuilder};
+use twilight_model::id::marker::{ApplicationMarker, GuildMarker};
 use twilight_util::builder::InteractionResponseDataBuilder;
+use twilight_util::builder::command::{ChannelBuilder, SubCommandBuilder, SubCommandGroupBuilder};
 
 pub fn subcommand_definition() -> CommandOption {
 	let channel_option = ChannelBuilder::new(
@@ -99,7 +99,9 @@ pub async fn handle_subcommand(
 	};
 
 	let CommandOptionValue::SubCommandGroup(value_data) = subcommand_value else {
-		bail!("Command data is malformed; expected `/settings existing_partner_ticket_channel` to get a subcommand group value");
+		bail!(
+			"Command data is malformed; expected `/settings existing_partner_ticket_channel` to get a subcommand group value"
+		);
 	};
 	let Some(value) = value_data.first() else {
 		bail!("Command data is malformed; expected `/settings existing_partner_ticket_channel` to have a subcommand");
@@ -169,10 +171,14 @@ async fn set_ticket_channel(
 	db_connection: &mut PgConnection,
 ) -> miette::Result<()> {
 	let CommandOptionValue::SubCommand(values) = subcommand_value else {
-		bail!("Command data is malformed; expected `/settings existing_partner_ticket_channel set` to get subcommand data");
+		bail!(
+			"Command data is malformed; expected `/settings existing_partner_ticket_channel set` to get subcommand data"
+		);
 	};
 	let Some(existing_partner_ticket_channel) = values.first() else {
-		bail!("Command data is malformed; expected `/settings existing_partner_ticket_channel set` to have required option `existing_partner_ticket_channel`");
+		bail!(
+			"Command data is malformed; expected `/settings existing_partner_ticket_channel set` to have required option `existing_partner_ticket_channel`"
+		);
 	};
 	ensure!(
 		existing_partner_ticket_channel.name.as_str() == "existing_partner_ticket_channel",
@@ -180,7 +186,9 @@ async fn set_ticket_channel(
 	);
 
 	let CommandOptionValue::Channel(existing_partner_ticket_channel) = existing_partner_ticket_channel.value else {
-		bail!("Command data is malformed; expected `existing_partner_ticket_channel` option of `/settings existing_partner_ticket_channel set` to be a channel");
+		bail!(
+			"Command data is malformed; expected `existing_partner_ticket_channel` option of `/settings existing_partner_ticket_channel set` to be a channel"
+		);
 	};
 
 	let permissions_in_channel = channel_permissions(guild_id, existing_partner_ticket_channel, http_client).await?;

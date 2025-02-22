@@ -8,8 +8,8 @@ use std::collections::HashMap;
 use twilight_model::channel::message::component::{
 	ActionRow, Button, ButtonStyle, Component, SelectMenu, SelectMenuType,
 };
-use twilight_model::id::marker::{GuildMarker, RoleMarker};
 use twilight_model::id::Id;
+use twilight_model::id::marker::{GuildMarker, RoleMarker};
 
 #[derive(Debug, Default)]
 pub struct SetupState {

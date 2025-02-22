@@ -5,15 +5,14 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use crate::discord::state::reply::ReplyStates;
-use crate::discord::utils::tickets::{staff_message, user_message, UserMessageAuthor};
+use crate::discord::utils::tickets::{UserMessageAuthor, staff_message, user_message};
 use crate::discord::utils::timestamp::{datetime_from_id, timestamp_from_id};
-use crate::model::{database_id_from_discord_id, TicketMessage};
+use crate::model::{TicketMessage, database_id_from_discord_id};
 use crate::schema::ticket_messages;
 use chrono::Utc;
 use diesel::prelude::*;
 use diesel::r2d2::{ConnectionManager, Pool};
-use miette::{bail, IntoDiagnostic};
-use std::future::IntoFuture;
+use miette::{IntoDiagnostic, bail};
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use twilight_http::client::Client;
@@ -21,8 +20,8 @@ use twilight_model::application::interaction::modal::ModalInteractionData;
 use twilight_model::channel::message::MessageFlags;
 use twilight_model::gateway::payload::incoming::InteractionCreate;
 use twilight_model::http::interaction::{InteractionResponse, InteractionResponseType};
-use twilight_model::id::marker::ApplicationMarker;
 use twilight_model::id::Id;
+use twilight_model::id::marker::ApplicationMarker;
 use twilight_util::builder::InteractionResponseDataBuilder;
 use type_map::concurrent::TypeMap;
 

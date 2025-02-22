@@ -13,8 +13,8 @@ use twilight_http::client::Client;
 use twilight_model::application::interaction::message_component::MessageComponentInteractionData;
 use twilight_model::application::interaction::modal::ModalInteractionData;
 use twilight_model::gateway::payload::incoming::InteractionCreate;
-use twilight_model::id::marker::ApplicationMarker;
 use twilight_model::id::Id;
+use twilight_model::id::marker::ApplicationMarker;
 use type_map::concurrent::TypeMap;
 
 mod create_ticket;

@@ -73,7 +73,7 @@ pub struct TicketMetadata {
 
 #[server]
 async fn get_user_tickets(guild_id: Option<u64>) -> Result<Vec<TicketMetadata>, ServerFnError> {
-	use crate::model::{database_id_from_discord_id, Ticket};
+	use crate::model::{Ticket, database_id_from_discord_id};
 	use crate::schema::tickets;
 	use crate::web::pages::server_utils::{get_guild_id_from_request, get_user_id_from_request};
 	use crate::web::state::AppState;

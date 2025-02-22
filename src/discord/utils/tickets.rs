@@ -7,14 +7,14 @@
 use std::fmt;
 use twilight_http::request::channel::message::create_message::CreateMessage;
 use twilight_mention::fmt::Mention;
-use twilight_model::channel::message::embed::Embed;
 use twilight_model::channel::message::AllowedMentions;
+use twilight_model::channel::message::embed::Embed;
 use twilight_model::http::interaction::InteractionResponseData;
-use twilight_model::id::marker::UserMarker;
 use twilight_model::id::Id;
+use twilight_model::id::marker::UserMarker;
 use twilight_model::util::datetime::Timestamp;
-use twilight_util::builder::embed::{EmbedAuthorBuilder, EmbedBuilder};
 use twilight_util::builder::InteractionResponseDataBuilder;
+use twilight_util::builder::embed::{EmbedAuthorBuilder, EmbedBuilder};
 use twilight_validate::embed::EmbedValidationError;
 
 pub const MAX_TICKET_TITLE_LENGTH: u16 = 60;

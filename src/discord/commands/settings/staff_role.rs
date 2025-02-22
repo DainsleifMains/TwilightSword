@@ -5,11 +5,11 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use crate::discord::utils::setup::NOT_SET_UP_FOR_GUILD;
-use crate::model::{database_id_from_discord_id, Guild};
+use crate::model::{Guild, database_id_from_discord_id};
 use crate::schema::guilds;
 use diesel::prelude::*;
 use diesel::r2d2::{ConnectionManager, Pool};
-use miette::{bail, ensure, IntoDiagnostic};
+use miette::{IntoDiagnostic, bail, ensure};
 use twilight_http::client::Client;
 use twilight_mention::fmt::Mention;
 use twilight_model::application::command::CommandOption;
@@ -17,10 +17,10 @@ use twilight_model::application::interaction::application_command::CommandOption
 use twilight_model::channel::message::{AllowedMentions, MessageFlags};
 use twilight_model::gateway::payload::incoming::InteractionCreate;
 use twilight_model::http::interaction::{InteractionResponse, InteractionResponseType};
-use twilight_model::id::marker::ApplicationMarker;
 use twilight_model::id::Id;
-use twilight_util::builder::command::{RoleBuilder, SubCommandBuilder, SubCommandGroupBuilder};
+use twilight_model::id::marker::ApplicationMarker;
 use twilight_util::builder::InteractionResponseDataBuilder;
+use twilight_util::builder::command::{RoleBuilder, SubCommandBuilder, SubCommandGroupBuilder};
 
 pub fn subcommand_definition() -> CommandOption {
 	let staff_role = RoleBuilder::new("staff_role", "The role assigned to all staff members")

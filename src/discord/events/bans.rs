@@ -5,17 +5,17 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use crate::discord::utils::timestamp::datetime_from_id;
-use crate::model::{database_id_from_discord_id, BanAction, Guild};
+use crate::model::{BanAction, Guild, database_id_from_discord_id};
 use crate::schema::{ban_actions, guilds};
 use diesel::prelude::*;
 use diesel::r2d2::{ConnectionManager, Pool};
-use miette::{bail, IntoDiagnostic};
+use miette::{IntoDiagnostic, bail};
 use twilight_http::client::Client;
 use twilight_mention::fmt::Mention;
 use twilight_model::channel::message::AllowedMentions;
 use twilight_model::guild::audit_log::AuditLogEntry;
-use twilight_model::id::marker::UserMarker;
 use twilight_model::id::Id;
+use twilight_model::id::marker::UserMarker;
 
 pub async fn handle_ban(
 	event_audit_entry: &AuditLogEntry,
@@ -66,7 +66,11 @@ pub async fn handle_ban(
 		.into_diagnostic()?;
 
 	if let Some(complain_channel_id) = guild_data.get_action_reason_complain_channel() {
-		let complain_message = format!("{0}, {1} has been banned, but you didn't provide a reason. Please write a note about {1} as soon as you can.", banning_user_id.mention(), banned_user_id.mention());
+		let complain_message = format!(
+			"{0}, {1} has been banned, but you didn't provide a reason. Please write a note about {1} as soon as you can.",
+			banning_user_id.mention(),
+			banned_user_id.mention()
+		);
 		let mut allowed_mentions = AllowedMentions::default();
 		allowed_mentions.users.push(banning_user_id);
 		http_client

@@ -6,24 +6,24 @@
 
 use crate::discord::state::settings::start_ticket_message::StartTicketMessageState;
 use crate::discord::utils::setup::NOT_SET_UP_FOR_GUILD;
-use crate::model::{database_id_from_discord_id, Guild};
+use crate::model::{Guild, database_id_from_discord_id};
 use crate::schema::guilds;
 use diesel::prelude::*;
 use diesel::r2d2::{ConnectionManager, Pool};
-use miette::{bail, IntoDiagnostic};
+use miette::{IntoDiagnostic, bail};
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use tokio::time::{sleep, Duration};
+use tokio::time::{Duration, sleep};
 use twilight_http::client::Client;
 use twilight_model::application::command::CommandOption;
-use twilight_model::channel::message::component::{ActionRow, Component, TextInput, TextInputStyle};
 use twilight_model::channel::message::MessageFlags;
+use twilight_model::channel::message::component::{ActionRow, Component, TextInput, TextInputStyle};
 use twilight_model::gateway::payload::incoming::InteractionCreate;
 use twilight_model::http::interaction::{InteractionResponse, InteractionResponseType};
-use twilight_model::id::marker::ApplicationMarker;
 use twilight_model::id::Id;
-use twilight_util::builder::command::SubCommandBuilder;
+use twilight_model::id::marker::ApplicationMarker;
 use twilight_util::builder::InteractionResponseDataBuilder;
+use twilight_util::builder::command::SubCommandBuilder;
 use type_map::concurrent::TypeMap;
 
 pub fn subcommand_definition() -> CommandOption {

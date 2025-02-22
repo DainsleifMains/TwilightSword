@@ -13,8 +13,8 @@ use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 use diesel_derive_enum::DbEnum;
 use std::fmt;
-use twilight_model::id::marker::{ChannelMarker, GuildMarker, MessageMarker, RoleMarker, UserMarker};
 use twilight_model::id::Id;
+use twilight_model::id::marker::{ChannelMarker, GuildMarker, MessageMarker, RoleMarker, UserMarker};
 
 #[derive(DbEnum, Debug)]
 #[ExistingTypePath = "crate::schema::sql_types::BuiltInTicketCategory"]

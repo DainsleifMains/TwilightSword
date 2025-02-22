@@ -4,14 +4,13 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-use super::utils::tickets::{staff_message, user_message, UserMessageAuthor};
+use super::utils::tickets::{UserMessageAuthor, staff_message, user_message};
 use super::utils::timestamp::datetime_from_timestamp;
-use crate::model::{database_id_from_discord_id, Ticket, TicketMessage};
+use crate::model::{Ticket, TicketMessage, database_id_from_discord_id};
 use crate::schema::{ticket_messages, tickets};
 use diesel::prelude::*;
 use diesel::r2d2::{ConnectionManager, Pool};
 use miette::IntoDiagnostic;
-use std::future::IntoFuture;
 use twilight_http::client::Client;
 use twilight_model::channel::message::{Message, MessageReferenceType};
 

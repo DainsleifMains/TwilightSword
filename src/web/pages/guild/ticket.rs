@@ -95,8 +95,8 @@ async fn get_ticket_data(client_guild_id: Option<u64>, ticket_id: String) -> Res
 	use std::collections::{HashMap, HashSet};
 	use std::sync::Arc;
 	use tokio::task::JoinSet;
-	use twilight_model::id::marker::UserMarker;
 	use twilight_model::id::Id;
+	use twilight_model::id::marker::UserMarker;
 
 	let guild_data = get_guild_data_from_request(client_guild_id).await?;
 	let Some(guild_data) = guild_data else {

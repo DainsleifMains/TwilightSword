@@ -4,7 +4,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-use crate::model::{database_id_from_discord_id, Guild};
+use crate::model::{Guild, database_id_from_discord_id};
 use crate::schema::guilds;
 use crate::web::session_key::DISCORD_USER;
 use crate::web::state::AppState;
@@ -13,8 +13,8 @@ use diesel::prelude::*;
 use leptos::prelude::*;
 use leptos_axum::extract_with_state;
 use tower_sessions::session::Session;
-use twilight_model::id::marker::{GuildMarker, UserMarker};
 use twilight_model::id::Id;
+use twilight_model::id::marker::{GuildMarker, UserMarker};
 
 /// Gets the guild ID for a request.
 /// Must be used from a server function; relies on extracting request data.

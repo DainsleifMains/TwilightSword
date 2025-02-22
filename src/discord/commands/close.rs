@@ -4,13 +4,12 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-use crate::model::{database_id_from_discord_id, Ticket};
+use crate::model::{Ticket, database_id_from_discord_id};
 use crate::schema::tickets;
 use chrono::Utc;
 use diesel::prelude::*;
 use diesel::r2d2::{ConnectionManager, Pool};
 use miette::IntoDiagnostic;
-use std::future::IntoFuture;
 use twilight_http::client::Client;
 use twilight_http::request::AuditLogReason;
 use twilight_model::application::command::{Command, CommandType};
@@ -18,10 +17,10 @@ use twilight_model::application::interaction::InteractionContextType;
 use twilight_model::channel::message::MessageFlags;
 use twilight_model::gateway::payload::incoming::InteractionCreate;
 use twilight_model::http::interaction::{InteractionResponse, InteractionResponseType};
-use twilight_model::id::marker::ApplicationMarker;
 use twilight_model::id::Id;
-use twilight_util::builder::command::CommandBuilder;
+use twilight_model::id::marker::ApplicationMarker;
 use twilight_util::builder::InteractionResponseDataBuilder;
+use twilight_util::builder::command::CommandBuilder;
 
 pub fn command_definition() -> Command {
 	CommandBuilder::new("close", "Close a ticket", CommandType::ChatInput)

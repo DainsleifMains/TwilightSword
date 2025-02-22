@@ -13,8 +13,8 @@ use twilight_http::client::Client;
 use twilight_model::application::command::Command;
 use twilight_model::application::interaction::application_command::CommandData;
 use twilight_model::gateway::payload::incoming::InteractionCreate;
-use twilight_model::id::marker::ApplicationMarker;
 use twilight_model::id::Id;
+use twilight_model::id::marker::ApplicationMarker;
 use type_map::concurrent::TypeMap;
 
 mod close;

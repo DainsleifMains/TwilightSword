@@ -4,21 +4,21 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-use crate::discord::state::setup::{set_up_components, SetupState};
-use crate::model::{database_id_from_discord_id, Guild};
+use crate::discord::state::setup::{SetupState, set_up_components};
+use crate::model::{Guild, database_id_from_discord_id};
 use crate::schema::guilds;
 use diesel::prelude::*;
 use diesel::r2d2::{ConnectionManager, Pool};
 use diesel::result::{DatabaseErrorKind, Error as DbError};
-use miette::{bail, IntoDiagnostic};
+use miette::{IntoDiagnostic, bail};
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use twilight_http::client::Client;
 use twilight_model::application::interaction::message_component::MessageComponentInteractionData;
 use twilight_model::gateway::payload::incoming::InteractionCreate;
 use twilight_model::http::interaction::{InteractionResponse, InteractionResponseType};
-use twilight_model::id::marker::{ApplicationMarker, RoleMarker};
 use twilight_model::id::Id;
+use twilight_model::id::marker::{ApplicationMarker, RoleMarker};
 use twilight_util::builder::InteractionResponseDataBuilder;
 use type_map::concurrent::TypeMap;
 

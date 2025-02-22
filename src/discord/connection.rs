@@ -19,8 +19,8 @@ use twilight_gateway::{EventTypeFlags, Intents, Shard, ShardId, StreamExt};
 use twilight_http::client::Client;
 use twilight_model::application::interaction::InteractionData;
 use twilight_model::gateway::event::Event;
-use twilight_model::id::marker::ApplicationMarker;
 use twilight_model::id::Id;
+use twilight_model::id::marker::ApplicationMarker;
 use type_map::concurrent::TypeMap;
 
 pub fn set_up_client(config: &ConfigData) -> Arc<Client> {

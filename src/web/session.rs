@@ -13,7 +13,7 @@ use diesel::prelude::*;
 use diesel::r2d2::{ConnectionManager, Pool};
 use time::OffsetDateTime;
 use tower_sessions::session::{Id, Record};
-use tower_sessions::{session_store, SessionStore};
+use tower_sessions::{SessionStore, session_store};
 
 #[derive(Clone, Debug)]
 pub struct DatabaseStore {
@@ -35,7 +35,7 @@ impl SessionStore for DatabaseStore {
 				return Err(session_store::Error::Backend(format!(
 					"Couldn't get database connection: {}",
 					error
-				)))
+				)));
 			}
 		};
 
@@ -53,7 +53,7 @@ impl SessionStore for DatabaseStore {
 				return Err(session_store::Error::Backend(format!(
 					"Timestamp out of bounds: {}",
 					error
-				)))
+				)));
 			}
 		};
 		let expires = DateTime::from_timestamp_nanos(expires);
@@ -84,7 +84,7 @@ impl SessionStore for DatabaseStore {
 				return Err(session_store::Error::Backend(format!(
 					"Couldn't get database connection: {}",
 					error
-				)))
+				)));
 			}
 		};
 
@@ -102,7 +102,7 @@ impl SessionStore for DatabaseStore {
 				return Err(session_store::Error::Backend(format!(
 					"Timestamp out of bounds: {}",
 					error
-				)))
+				)));
 			}
 		};
 		let expires = DateTime::from_timestamp_nanos(expires);
@@ -128,7 +128,7 @@ impl SessionStore for DatabaseStore {
 				return Err(session_store::Error::Backend(format!(
 					"Couldn't get database connection: {}",
 					error
-				)))
+				)));
 			}
 		};
 
@@ -159,7 +159,7 @@ impl SessionStore for DatabaseStore {
 					None => {
 						return Err(session_store::Error::Backend(String::from(
 							"Out of range expiration timestamp",
-						)))
+						)));
 					}
 				};
 				let expiry_date = match OffsetDateTime::from_unix_timestamp_nanos(expiry_date) {
@@ -168,7 +168,7 @@ impl SessionStore for DatabaseStore {
 						return Err(session_store::Error::Backend(format!(
 							"Timestamp conversion error: {}",
 							error
-						)))
+						)));
 					}
 				};
 
@@ -193,7 +193,7 @@ impl SessionStore for DatabaseStore {
 				return Err(session_store::Error::Backend(format!(
 					"Couldn't get database connection: {}",
 					error
-				)))
+				)));
 			}
 		};
 

@@ -7,7 +7,7 @@
 use crate::config::ConfigData;
 use diesel::prelude::*;
 use diesel::r2d2::{ConnectionManager, Pool};
-use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
+use diesel_migrations::{EmbeddedMigrations, MigrationHarness, embed_migrations};
 use miette::{Diagnostic, IntoDiagnostic};
 use std::error::Error;
 use std::fmt;

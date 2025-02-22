@@ -11,12 +11,12 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 use twilight_http::client::Client;
 use twilight_model::application::command::{Command, CommandType};
-use twilight_model::application::interaction::application_command::CommandData;
 use twilight_model::application::interaction::InteractionContextType;
+use twilight_model::application::interaction::application_command::CommandData;
 use twilight_model::gateway::payload::incoming::InteractionCreate;
 use twilight_model::guild::Permissions;
-use twilight_model::id::marker::ApplicationMarker;
 use twilight_model::id::Id;
+use twilight_model::id::marker::ApplicationMarker;
 use twilight_util::builder::command::CommandBuilder;
 use type_map::concurrent::TypeMap;
 

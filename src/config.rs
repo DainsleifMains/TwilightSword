@@ -5,7 +5,7 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use kdl::KdlDocument;
-use miette::{bail, miette, IntoDiagnostic};
+use miette::{IntoDiagnostic, bail, miette};
 use tokio::fs::read_to_string;
 
 #[derive(Debug)]
@@ -70,50 +70,62 @@ pub async fn parse_config(config_path: &str) -> miette::Result<ConfigData> {
 	};
 
 	let Some(discord_bot_token) = discord_bot_token.get(0) else {
-		bail!(miette!(
-			code = "value::discord::bot-token",
-			"expected discord bot token to have a value"
-		)
-		.with_source_code(format!("{}", discord_args_node)));
+		bail!(
+			miette!(
+				code = "value::discord::bot-token",
+				"expected discord bot token to have a value"
+			)
+			.with_source_code(format!("{}", discord_args_node))
+		);
 	};
 	let Some(discord_bot_token) = discord_bot_token.as_string() else {
-		bail!(miette!(
-			code = "type::discord::bot-token",
-			"expected discord bot token to be a string"
-		)
-		.with_source_code(format!("{}", discord_args_node)));
+		bail!(
+			miette!(
+				code = "type::discord::bot-token",
+				"expected discord bot token to be a string"
+			)
+			.with_source_code(format!("{}", discord_args_node))
+		);
 	};
 	let discord_bot_token = discord_bot_token.to_string();
 
 	let Some(discord_client_id) = discord_client_id.get(0) else {
-		bail!(miette!(
-			code = "value::discord::client-id",
-			"expected discord client ID to have a value"
-		)
-		.with_source_code(format!("{}", discord_args_node)));
+		bail!(
+			miette!(
+				code = "value::discord::client-id",
+				"expected discord client ID to have a value"
+			)
+			.with_source_code(format!("{}", discord_args_node))
+		);
 	};
 	let Some(discord_client_id) = discord_client_id.as_string() else {
-		bail!(miette!(
-			code = "type::discord::client-id",
-			"expected discord client ID to be a string"
-		)
-		.with_source_code(format!("{}", discord_args_node)));
+		bail!(
+			miette!(
+				code = "type::discord::client-id",
+				"expected discord client ID to be a string"
+			)
+			.with_source_code(format!("{}", discord_args_node))
+		);
 	};
 	let discord_client_id = discord_client_id.to_string();
 
 	let Some(discord_client_secret) = discord_client_secret.get(0) else {
-		bail!(miette!(
-			code = "value::discord::client-secret",
-			"expected discord client secret to have a value"
-		)
-		.with_source_code(format!("{}", discord_args_node)));
+		bail!(
+			miette!(
+				code = "value::discord::client-secret",
+				"expected discord client secret to have a value"
+			)
+			.with_source_code(format!("{}", discord_args_node))
+		);
 	};
 	let Some(discord_client_secret) = discord_client_secret.as_string() else {
-		bail!(miette!(
-			code = "type::discord::client-secret",
-			"expected discord client secret to be a string"
-		)
-		.with_source_code(format!("{}", discord_args_node)));
+		bail!(
+			miette!(
+				code = "type::discord::client-secret",
+				"expected discord client secret to be a string"
+			)
+			.with_source_code(format!("{}", discord_args_node))
+		);
 	};
 	let discord_client_secret = discord_client_secret.to_string();
 
@@ -181,20 +193,24 @@ pub async fn parse_config(config_path: &str) -> miette::Result<ConfigData> {
 				);
 			};
 			let Some(port) = port.as_integer() else {
-				bail!(miette!(
-					code = "type::database::port",
-					"expected database port to be an integer port number"
-				)
-				.with_source_code(format!("{}", database_args_node)));
+				bail!(
+					miette!(
+						code = "type::database::port",
+						"expected database port to be an integer port number"
+					)
+					.with_source_code(format!("{}", database_args_node))
+				);
 			};
 			let port: Option<u16> = match port.try_into() {
 				Ok(port) => Some(port),
-				Err(error) => bail!(miette!(
-					code = "type::database::port",
-					"expected database port number to be in range for port numbers ({})",
-					error
-				)
-				.with_source_code(format!("{}", database_args_node))),
+				Err(error) => bail!(
+					miette!(
+						code = "type::database::port",
+						"expected database port number to be in range for port numbers ({})",
+						error
+					)
+					.with_source_code(format!("{}", database_args_node))
+				),
 			};
 			port
 		}
@@ -202,50 +218,62 @@ pub async fn parse_config(config_path: &str) -> miette::Result<ConfigData> {
 	};
 
 	let Some(database_username) = database_username.get(0) else {
-		bail!(miette!(
-			code = "value::database::username",
-			"expected database username to have a value"
-		)
-		.with_source_code(format!("{}", database_args_node)));
+		bail!(
+			miette!(
+				code = "value::database::username",
+				"expected database username to have a value"
+			)
+			.with_source_code(format!("{}", database_args_node))
+		);
 	};
 	let Some(database_username) = database_username.as_string() else {
-		bail!(miette!(
-			code = "type::database::username",
-			"expected database username to be a string"
-		)
-		.with_source_code(format!("{}", database_args_node)));
+		bail!(
+			miette!(
+				code = "type::database::username",
+				"expected database username to be a string"
+			)
+			.with_source_code(format!("{}", database_args_node))
+		);
 	};
 	let database_username = database_username.to_string();
 
 	let Some(database_password) = database_password.get(0) else {
-		bail!(miette!(
-			code = "value::database::password",
-			"expected database password to have a value"
-		)
-		.with_source_code(format!("{}", database_args_node)));
+		bail!(
+			miette!(
+				code = "value::database::password",
+				"expected database password to have a value"
+			)
+			.with_source_code(format!("{}", database_args_node))
+		);
 	};
 	let Some(database_password) = database_password.as_string() else {
-		bail!(miette!(
-			code = "type::database::password",
-			"expected database password to be a string"
-		)
-		.with_source_code(format!("{}", database_args_node)));
+		bail!(
+			miette!(
+				code = "type::database::password",
+				"expected database password to be a string"
+			)
+			.with_source_code(format!("{}", database_args_node))
+		);
 	};
 	let database_password = database_password.to_string();
 
 	let Some(database_database) = database_database.get(0) else {
-		bail!(miette!(
-			code = "value::database::database",
-			"expected database database to have a value"
-		)
-		.with_source_code(format!("{}", database_args_node)));
+		bail!(
+			miette!(
+				code = "value::database::database",
+				"expected database database to have a value"
+			)
+			.with_source_code(format!("{}", database_args_node))
+		);
 	};
 	let Some(database_database) = database_database.as_string() else {
-		bail!(miette!(
-			code = "type::database::database",
-			"expected database name to be a string"
-		)
-		.with_source_code(format!("{}", database_args_node)));
+		bail!(
+			miette!(
+				code = "type::database::database",
+				"expected database name to be a string"
+			)
+			.with_source_code(format!("{}", database_args_node))
+		);
 	};
 	let database_database = database_database.to_string();
 

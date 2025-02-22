@@ -7,25 +7,25 @@
 use crate::discord::state::create_ticket::new_ticket_button;
 use crate::discord::utils::permissions::channel_permissions;
 use crate::discord::utils::setup::NOT_SET_UP_FOR_GUILD;
-use crate::model::{database_id_from_discord_id, Guild};
+use crate::model::{Guild, database_id_from_discord_id};
 use crate::schema::guilds;
 use diesel::prelude::*;
 use diesel::r2d2::{ConnectionManager, Pool};
-use miette::{bail, ensure, IntoDiagnostic};
+use miette::{IntoDiagnostic, bail, ensure};
 use twilight_http::client::Client;
 use twilight_http::request::AuditLogReason;
 use twilight_mention::fmt::Mention;
 use twilight_model::application::command::CommandOption;
 use twilight_model::application::interaction::application_command::CommandOptionValue;
-use twilight_model::channel::message::{AllowedMentions, MessageFlags};
 use twilight_model::channel::ChannelType;
+use twilight_model::channel::message::{AllowedMentions, MessageFlags};
 use twilight_model::gateway::payload::incoming::InteractionCreate;
 use twilight_model::guild::Permissions;
 use twilight_model::http::interaction::{InteractionResponse, InteractionResponseType};
-use twilight_model::id::marker::{ApplicationMarker, GuildMarker};
 use twilight_model::id::Id;
-use twilight_util::builder::command::{ChannelBuilder, SubCommandBuilder, SubCommandGroupBuilder};
+use twilight_model::id::marker::{ApplicationMarker, GuildMarker};
 use twilight_util::builder::InteractionResponseDataBuilder;
+use twilight_util::builder::command::{ChannelBuilder, SubCommandBuilder, SubCommandGroupBuilder};
 
 pub fn subcommand_definition() -> CommandOption {
 	let ticket_channel = ChannelBuilder::new(
@@ -170,7 +170,9 @@ async fn set_ticket_channel(
 		bail!("Command data is malformed; expected `/settings start_ticket_channel set` to get subcommand data");
 	};
 	let Some(start_ticket_channel) = values.first() else {
-		bail!("Command data is malformed; expected `/settings start_ticket_channel set` to have required option `start_ticket_channel`");
+		bail!(
+			"Command data is malformed; expected `/settings start_ticket_channel set` to have required option `start_ticket_channel`"
+		);
 	};
 	ensure!(
 		start_ticket_channel.name.as_str() == "start_ticket_channel",
@@ -181,7 +183,9 @@ async fn set_ticket_channel(
 	let original_message = guild.get_start_ticket_message_id();
 
 	let CommandOptionValue::Channel(start_ticket_channel) = start_ticket_channel.value else {
-		bail!("Command data is malformed; expected `start_ticket_channel` option of `/settings start_ticket_channel set` to be a channel");
+		bail!(
+			"Command data is malformed; expected `start_ticket_channel` option of `/settings start_ticket_channel set` to be a channel"
+		);
 	};
 
 	let permissions_in_channel = channel_permissions(guild_id, start_ticket_channel, http_client).await?;
@@ -299,7 +303,11 @@ async fn unset_ticket_channel(
 							.await
 							.into_diagnostic()?;
 					}
-					InteractionResponseDataBuilder::new().content("The start ticket channel has been unset. Your server will no longer use this feature until you set it again.").build()
+					InteractionResponseDataBuilder::new()
+						.content(
+							"The start ticket channel has been unset. Your server will no longer use this feature until you set it again.",
+						)
+						.build()
 				}
 				Err(error) => {
 					tracing::error!(source = ?error, "Failed to remove the start ticket channel for a server");

@@ -5,11 +5,11 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use crate::discord::utils::timestamp::datetime_from_id;
-use crate::model::{database_id_from_discord_id, AutomodAction, AutomodActionType, Guild};
+use crate::model::{AutomodAction, AutomodActionType, Guild, database_id_from_discord_id};
 use crate::schema::{automod_actions, guilds};
 use diesel::prelude::*;
 use diesel::r2d2::{ConnectionManager, Pool};
-use miette::{bail, IntoDiagnostic};
+use miette::{IntoDiagnostic, bail};
 use twilight_model::guild::audit_log::AuditLogEntry;
 
 pub async fn handle_block(

@@ -6,11 +6,11 @@
 
 use crate::discord::state::create_ticket::new_ticket_button;
 use crate::discord::state::settings::start_ticket_message::StartTicketMessageState;
-use crate::model::{database_id_from_discord_id, Guild};
+use crate::model::{Guild, database_id_from_discord_id};
 use crate::schema::guilds;
 use diesel::prelude::*;
 use diesel::r2d2::{ConnectionManager, Pool};
-use miette::{bail, IntoDiagnostic};
+use miette::{IntoDiagnostic, bail};
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use twilight_http::client::Client;
@@ -18,10 +18,10 @@ use twilight_model::application::interaction::modal::ModalInteractionData;
 use twilight_model::channel::message::MessageFlags;
 use twilight_model::gateway::payload::incoming::InteractionCreate;
 use twilight_model::http::interaction::{InteractionResponse, InteractionResponseType};
-use twilight_model::id::marker::ApplicationMarker;
 use twilight_model::id::Id;
-use twilight_util::builder::embed::EmbedBuilder;
+use twilight_model::id::marker::ApplicationMarker;
 use twilight_util::builder::InteractionResponseDataBuilder;
+use twilight_util::builder::embed::EmbedBuilder;
 use type_map::concurrent::TypeMap;
 
 pub async fn handle_start_ticket_message_modal(

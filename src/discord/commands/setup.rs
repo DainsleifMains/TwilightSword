@@ -4,15 +4,15 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-use crate::discord::state::setup::{set_up_components, SetupInstance, SetupState};
-use crate::model::{database_id_from_discord_id, Guild as DbGuild};
+use crate::discord::state::setup::{SetupInstance, SetupState, set_up_components};
+use crate::model::{Guild as DbGuild, database_id_from_discord_id};
 use crate::schema::guilds;
 use diesel::prelude::*;
 use diesel::r2d2::{ConnectionManager, Pool};
-use miette::{bail, IntoDiagnostic};
+use miette::{IntoDiagnostic, bail};
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use tokio::time::{sleep, Duration};
+use tokio::time::{Duration, sleep};
 use twilight_http::client::Client;
 use twilight_model::application::command::{Command, CommandType};
 use twilight_model::application::interaction::InteractionContextType;
@@ -20,10 +20,10 @@ use twilight_model::channel::message::MessageFlags;
 use twilight_model::gateway::payload::incoming::InteractionCreate;
 use twilight_model::guild::Permissions;
 use twilight_model::http::interaction::{InteractionResponse, InteractionResponseType};
-use twilight_model::id::marker::ApplicationMarker;
 use twilight_model::id::Id;
-use twilight_util::builder::command::CommandBuilder;
+use twilight_model::id::marker::ApplicationMarker;
 use twilight_util::builder::InteractionResponseDataBuilder;
+use twilight_util::builder::command::CommandBuilder;
 use type_map::concurrent::TypeMap;
 
 pub fn command_definition() -> Command {
