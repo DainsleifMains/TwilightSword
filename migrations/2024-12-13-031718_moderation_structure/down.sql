@@ -8,6 +8,7 @@ ALTER TABLE guilds DROP COLUMN ban_appeal_ticket_form;
 ALTER TABLE guilds DROP COLUMN new_partner_ticket_form;
 ALTER TABLE guilds DROP COLUMN existing_partner_ticket_form;
 
+DROP TABLE ticket_restricted_users;
 DROP INDEX session_expiry;
 DROP TABLE sessions;
 DROP TABLE pending_partnerships;

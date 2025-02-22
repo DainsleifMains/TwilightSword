@@ -149,3 +149,9 @@ CREATE TABLE sessions (
 );
 
 CREATE INDEX session_expiry ON sessions (expires);
+
+CREATE TABLE ticket_restricted_users (
+	guild_id discord_id NOT NULL,
+	user_id discord_id NOT NULL,
+	PRIMARY KEY (guild_id, user_id)
+);

@@ -18,16 +18,22 @@ use twilight_model::id::marker::ApplicationMarker;
 use type_map::concurrent::TypeMap;
 
 mod close;
+mod list_restricted_users;
 mod reply;
+mod restrict_ticket_user;
 mod settings;
 mod setup;
+mod unrestrict_ticket_user;
 
 pub fn command_definitions() -> Vec<Command> {
 	vec![
 		close::command_definition(),
+		list_restricted_users::command_definition(),
 		reply::command_definition(),
+		restrict_ticket_user::command_definition(),
 		setup::command_definition(),
 		settings::command_definition(),
+		unrestrict_ticket_user::command_definition(),
 	]
 }
 
@@ -41,7 +47,20 @@ pub async fn route_command(
 ) -> miette::Result<()> {
 	match command_data.name.as_str() {
 		"close" => close::handle_command(interaction, http_client, application_id, db_connection_pool).await,
+		"list_restricted_users" => {
+			list_restricted_users::handle_command(interaction, http_client, application_id, db_connection_pool).await
+		}
 		"reply" => reply::handle_command(interaction, http_client, application_id, db_connection_pool, bot_state).await,
+		"restrict_ticket_user" => {
+			restrict_ticket_user::handle_command(
+				interaction,
+				command_data,
+				http_client,
+				application_id,
+				db_connection_pool,
+			)
+			.await
+		}
 		"setup" => setup::handle_command(interaction, http_client, application_id, db_connection_pool, bot_state).await,
 		"settings" => {
 			settings::handle_command(
@@ -54,6 +73,16 @@ pub async fn route_command(
 			)
 			.await
 		}
-		_ => bail!("Unknown command encoutered: {}\n{:?}", command_data.name, command_data),
+		"unrestrict_ticket_user" => {
+			unrestrict_ticket_user::handle_command(
+				interaction,
+				command_data,
+				http_client,
+				application_id,
+				db_connection_pool,
+			)
+			.await
+		}
+		_ => bail!("Unknown command encountered: {}\n{:?}", command_data.name, command_data),
 	}
 }

@@ -7,8 +7,12 @@
 use crate::discord::state::create_ticket::{BuiltInCategory, CreateTicketState, CreateTicketStates};
 use crate::discord::utils::invites::invite_code_from_url;
 use crate::discord::utils::tickets::MAX_TICKET_TITLE_LENGTH;
-use crate::model::{CustomCategory, Guild, PendingPartnership, Ticket, TicketMessage, database_id_from_discord_id};
-use crate::schema::{custom_categories, guilds, pending_partnerships, ticket_messages, tickets};
+use crate::model::{
+	CustomCategory, Guild, PendingPartnership, Ticket, TicketMessage, TicketRestrictedUser, database_id_from_discord_id,
+};
+use crate::schema::{
+	custom_categories, guilds, pending_partnerships, ticket_messages, ticket_restricted_users, tickets,
+};
 use chrono::Utc;
 use diesel::prelude::*;
 use diesel::r2d2::{ConnectionManager, Pool};
@@ -143,13 +147,42 @@ async fn create_ticket(
 	let mut db_connection = db_connection_pool.get().into_diagnostic()?;
 	let db_guild_id = database_id_from_discord_id(guild_id.get());
 
+	let interaction_client = http_client.interaction(application_id);
+	let Some(interaction_member) = &interaction.member else {
+		bail!("Interaction isn't from a user");
+	};
+	let Some(interaction_user) = &interaction_member.user else {
+		bail!("Interaction member is not a user");
+	};
+	let db_user_id = database_id_from_discord_id(interaction_user.id.get());
+
+	let restriction: Option<TicketRestrictedUser> = ticket_restricted_users::table
+		.find((db_guild_id, db_user_id))
+		.first(&mut db_connection)
+		.optional()
+		.into_diagnostic()?;
+	if restriction.is_some() {
+		let response = InteractionResponseDataBuilder::new()
+			.content("You may not send tickets on this server.")
+			.flags(MessageFlags::EPHEMERAL)
+			.build();
+		let response = InteractionResponse {
+			kind: InteractionResponseType::ChannelMessageWithSource,
+			data: Some(response),
+		};
+		interaction_client
+			.create_response(interaction.id, &interaction.token, &response)
+			.await
+			.into_diagnostic()?;
+		return Ok(());
+	};
+
 	let guild: Option<Guild> = guilds::table
 		.find(db_guild_id)
 		.first(&mut db_connection)
 		.optional()
 		.into_diagnostic()?;
 
-	let interaction_client = http_client.interaction(application_id);
 	let Some(guild) = guild else {
 		let response = InteractionResponseDataBuilder::new()
 			.content("This server isn't set up for Twilight Sword.")

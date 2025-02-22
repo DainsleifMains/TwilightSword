@@ -128,6 +128,13 @@ diesel::table! {
 }
 
 diesel::table! {
+	ticket_restricted_users (guild_id, user_id) {
+		guild_id -> Int8,
+		user_id -> Int8,
+	}
+}
+
+diesel::table! {
 	use diesel::sql_types::*;
 	use super::sql_types::BuiltInTicketCategory;
 
@@ -180,6 +187,7 @@ diesel::allow_tables_to_appear_in_same_query!(
 	pending_partnerships,
 	sessions,
 	ticket_messages,
+	ticket_restricted_users,
 	tickets,
 	timeout_actions,
 );

@@ -6,7 +6,7 @@
 
 use crate::schema::{
 	automod_actions, ban_actions, custom_categories, form_questions, forms, guilds, kick_actions, pending_partnerships,
-	sessions, ticket_messages, tickets, timeout_actions,
+	sessions, ticket_messages, ticket_restricted_users, tickets, timeout_actions,
 };
 use bigdecimal::BigDecimal;
 use chrono::{DateTime, Utc};
@@ -600,6 +600,35 @@ pub struct Session {
 	pub session_id: BigDecimal,
 	pub data: String,
 	pub expires: DateTime<Utc>,
+}
+
+/// The database representation of a user who is restricted from creating new tickets
+#[derive(Debug, Insertable, Queryable)]
+pub struct TicketRestrictedUser {
+	/// The guild to which the user is restricted from submitting tickets
+	///
+	/// To get a Discord-facing representation of this more easily, use [Self::get_guild_id].
+	pub guild_id: i64,
+	/// The user who is restricted from submitting tickets
+	///
+	/// To get a Discord-facing representation of this more easily, use [Self::get_user_id].
+	pub user_id: i64,
+}
+
+impl TicketRestrictedUser {
+	/// The guild to which the user is restricted from submitting tickets
+	///
+	/// For the raw database representation, use [Self::guild_id].
+	pub fn get_guild_id(&self) -> Id<GuildMarker> {
+		Id::new(discord_id_from_database_id(self.guild_id))
+	}
+
+	/// The user who is restricted from submitting tickets
+	///
+	/// For the raw database representation, use [Self::user_id].
+	pub fn get_user_id(&self) -> Id<UserMarker> {
+		Id::new(discord_id_from_database_id(self.user_id))
+	}
 }
 
 /// Converts an ID used with Discord (unsigned) to an ID for Postgres use (signed)
