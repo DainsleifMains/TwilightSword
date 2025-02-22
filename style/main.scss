@@ -37,3 +37,20 @@ a {
 	width: 48px;
 	border-radius: 12px;
 }
+
+#ticket_header {
+	margin-bottom: 16px;
+}
+
+#ticket_title {
+	margin-bottom: 0px;
+}
+
+.ticket_message_start {
+	margin-top: 8px;
+	border-top: 1px solid #f6f6ff;
+	padding-top: 1px;
+	display: flex;
+	justify-content: space-between;
+	margin-bottom: 8px;
+}
