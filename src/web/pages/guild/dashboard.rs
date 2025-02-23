@@ -5,6 +5,7 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use crate::web::pages::utils::GuildParam;
+use chrono::{DateTime, Utc};
 use leptos::prelude::*;
 use leptos_router::hooks::use_params;
 use serde::{Deserialize, Serialize};
@@ -14,7 +15,7 @@ pub fn Dashboard() -> impl IntoView {
 	let params = use_params::<GuildParam>();
 	let guild_id = params.read().as_ref().ok().and_then(|params| params.guild);
 
-	let user_tickets = Resource::new(|| (), move |_| get_user_tickets(guild_id));
+	let user_tickets = Resource::new(|| (), move |_| get_active_tickets_for_user(guild_id));
 
 	view! {
 		<Transition fallback=|| view! { <div id="dashboard_ticket_list_loading">"Loading tickets..."</div> }>
@@ -22,6 +23,8 @@ pub fn Dashboard() -> impl IntoView {
 				<thead>
 					<tr>
 						<th>Ticket</th>
+						<th>Last Message Author</th>
+						<th>Last Message Time</th>
 					</tr>
 				</thead>
 				<tbody>
@@ -35,6 +38,12 @@ pub fn Dashboard() -> impl IntoView {
 												<a href={make_ticket_url(guild_id, &ticket.id)}>
 													{ticket.title.clone()}
 												</a>
+											</td>
+											<td class="dashboard_ticket_list_author">
+												{ticket.last_message_author_name.clone()}
+											</td>
+											<td>
+												{ticket.last_message_time.to_rfc3339()}
 											</td>
 										</tr>
 									}.into_any()
@@ -69,12 +78,15 @@ fn make_ticket_url(guild_id: Option<u64>, ticket_id: &str) -> String {
 pub struct TicketMetadata {
 	id: String,
 	title: String,
+	last_message_author_name: String,
+	last_message_time: DateTime<Utc>,
 }
 
 #[server]
-async fn get_user_tickets(guild_id: Option<u64>) -> Result<Vec<TicketMetadata>, ServerFnError> {
-	use crate::model::{Ticket, database_id_from_discord_id};
-	use crate::schema::tickets;
+async fn get_active_tickets_for_user(guild_id: Option<u64>) -> Result<Vec<TicketMetadata>, ServerFnError> {
+	use crate::discord::users::get_member_data;
+	use crate::model::{Ticket, TicketMessage, database_id_from_discord_id};
+	use crate::schema::{ticket_messages, tickets};
 	use crate::web::pages::server_utils::{get_guild_id_from_request, get_user_id_from_request};
 	use crate::web::state::AppState;
 	use diesel::prelude::*;
@@ -103,9 +115,23 @@ async fn get_user_tickets(guild_id: Option<u64>) -> Result<Vec<TicketMetadata>, 
 
 	let mut tickets: Vec<TicketMetadata> = Vec::with_capacity(user_tickets.len());
 	for ticket in user_tickets {
+		let last_message: TicketMessage = ticket_messages::table
+			.filter(ticket_messages::ticket.eq(&ticket.id).and(ticket_messages::user_message.is_not_null()))
+			.order(ticket_messages::send_time.desc())
+			.first(&mut db_connection)?;
+		let author_id = last_message.get_author();
+
+		let author_data = get_member_data(&state.discord_client, guild_id, author_id).await;
+		let author_name = match author_data {
+			Ok(data) => data.display_name,
+			Err(_) => format!("<{}>", author_id.get()),
+		};
+
 		let ticket_metadata = TicketMetadata {
 			id: ticket.id,
 			title: ticket.title,
+			last_message_author_name: author_name,
+			last_message_time: last_message.send_time,
 		};
 		tickets.push(ticket_metadata);
 	}

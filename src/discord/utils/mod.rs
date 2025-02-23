@@ -9,3 +9,4 @@ pub mod permissions;
 pub mod setup;
 pub mod tickets;
 pub mod timestamp;
+pub mod users;
