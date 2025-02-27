@@ -52,7 +52,7 @@ pub fn Dashboard() -> impl IntoView {
 							_ => {
 								let no_tickets_view = view! {
 									<tr>
-										<td colspan={1} class="dashboard_ticket_list_no_tickets">
+										<td colspan={3} class="dashboard_ticket_list_no_tickets">
 											"No open tickets"
 										</td>
 									</tr>
