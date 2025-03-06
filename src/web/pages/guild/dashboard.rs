@@ -18,8 +18,8 @@ pub fn Dashboard() -> impl IntoView {
 	let user_tickets = Resource::new(|| (), move |_| get_active_tickets_for_user(guild_id));
 
 	view! {
-		<Transition fallback=|| view! { <div id="dashboard_ticket_list_loading">"Loading tickets..."</div> }>
-			<table id="dashboard_ticket_list">
+		<Transition fallback=|| view! { <div class="dashboard_ticket_list_loading">"Loading tickets..."</div> }>
+			<table class="dashboard_ticket_list">
 				<thead>
 					<tr>
 						<th>Ticket</th>
