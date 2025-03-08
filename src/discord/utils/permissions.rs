@@ -14,8 +14,7 @@ use twilight_model::id::Id;
 use twilight_model::id::marker::{ChannelMarker, GuildMarker, RoleMarker};
 use twilight_util::permission_calculator::PermissionCalculator;
 
-// This permission list is reported to the user according to a function in the responses module, located adjacent to
-// this module.
+/// The list of permissions that the bot must have in the ticket channel in order to function.
 pub fn ticket_channel_permissions() -> Permissions {
 	Permissions::VIEW_CHANNEL
 		| Permissions::READ_MESSAGE_HISTORY
