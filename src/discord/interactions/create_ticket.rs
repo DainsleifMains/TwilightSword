@@ -6,7 +6,8 @@
 
 use crate::discord::state::create_ticket::{BuiltInCategory, CreateTicketState, CreateTicketStates};
 use crate::discord::utils::invites::invite_code_from_url;
-use crate::discord::utils::tickets::MAX_TICKET_TITLE_LENGTH;
+use crate::discord::utils::tickets::{MAX_TICKET_TITLE_LENGTH, UserMessageAuthor, staff_message, user_message};
+use crate::discord::utils::timestamp::timestamp_from_id;
 use crate::model::{
 	CustomCategory, Guild, PendingPartnership, Ticket, TicketMessage, TicketRestrictedUser, database_id_from_discord_id,
 };
@@ -24,14 +25,13 @@ use tokio::time::{Duration, sleep};
 use twilight_http::client::Client;
 use twilight_http::error::ErrorType;
 use twilight_http::response::StatusCode;
-use twilight_mention::fmt::Mention;
 use twilight_model::application::interaction::message_component::MessageComponentInteractionData;
 use twilight_model::application::interaction::modal::ModalInteractionData;
 use twilight_model::channel::ChannelType;
+use twilight_model::channel::message::MessageFlags;
 use twilight_model::channel::message::component::{
 	ActionRow, Button, ButtonStyle, Component, SelectMenu, SelectMenuOption, SelectMenuType, TextInput, TextInputStyle,
 };
-use twilight_model::channel::message::{AllowedMentions, MessageFlags};
 use twilight_model::gateway::payload::incoming::InteractionCreate;
 use twilight_model::http::interaction::{InteractionResponse, InteractionResponseType};
 use twilight_model::id::Id;
@@ -786,7 +786,27 @@ async fn handle_message_modal_data(
 		return Ok(());
 	};
 
-	let ticket_thread_message_content = format!("**Author**: {}\n\n{}", interaction_user.mention(), ticket_message);
+	let message_sent_timestamp = timestamp_from_id(interaction.id).into_diagnostic()?;
+
+	let staff_ticket_message_data = match staff_message(&interaction_user.name, &ticket_message, message_sent_timestamp)
+	{
+		Ok(data) => data,
+		Err(_) => {
+			let response = InteractionResponseDataBuilder::new()
+				.content("Your ticket couldn't be sent; its contents don't fit in an embed.")
+				.components(Vec::new())
+				.build();
+			let response = InteractionResponse {
+				kind: InteractionResponseType::UpdateMessage,
+				data: Some(response),
+			};
+			interaction_client
+				.create_response(interaction.id, &interaction.token, &response)
+				.await
+				.into_diagnostic()?;
+			return Ok(());
+		}
+	};
 
 	let staff_channel_id = match (
 		create_ticket_state.built_in_category,
@@ -832,21 +852,29 @@ async fn handle_message_modal_data(
 		.into_diagnostic()?;
 
 	let staff_ticket_title = format!("{} [{}]", ticket_title, interaction_user.name);
-	let staff_ticket_thread_future = http_client
+	let mut staff_ticket_message = http_client
 		.create_forum_thread(staff_channel_id, &staff_ticket_title)
-		.message()
-		.content(&ticket_thread_message_content)
-		.allowed_mentions(Some(&AllowedMentions::default()))
-		.into_future();
+		.message();
+	if let Some(content) = &staff_ticket_message_data.content {
+		staff_ticket_message = staff_ticket_message.content(content);
+	}
+	staff_ticket_message = staff_ticket_message
+		.embeds(&staff_ticket_message_data.embeds)
+		.allowed_mentions(Some(&staff_ticket_message_data.allowed_mentions));
+	let staff_ticket_thread_future = staff_ticket_message.into_future();
 
-	let user_ticket_message_content = format!("{}\n\n{}", interaction_user.id.mention(), ticket_message);
-	let mut user_ticket_allowed_mentions = AllowedMentions::default();
-	user_ticket_allowed_mentions.users.push(interaction_user.id);
-	let user_ticket_message_future = http_client
-		.create_message(user_ticket_thread.id)
-		.content(&user_ticket_message_content)
-		.allowed_mentions(Some(&user_ticket_allowed_mentions))
-		.into_future();
+	let user_ticket_author = UserMessageAuthor::User(interaction_user.name.clone());
+	let user_ticket_message_data = user_message(
+		user_ticket_author,
+		interaction_user.id,
+		false,
+		&ticket_message,
+		message_sent_timestamp,
+	)
+	.into_diagnostic()?;
+	let mut user_ticket_create_message = http_client.create_message(user_ticket_thread.id);
+	user_ticket_create_message = user_ticket_message_data.set_create_message_data(user_ticket_create_message);
+	let user_ticket_message_future = user_ticket_create_message.into_future();
 
 	let (staff_ticket_thread_result, user_ticket_message_result) =
 		tokio::join!(staff_ticket_thread_future, user_ticket_message_future);
