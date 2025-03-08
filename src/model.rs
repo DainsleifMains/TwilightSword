@@ -246,6 +246,8 @@ pub struct CustomCategory {
 	pub channel: i64,
 	/// If there's a form associated with the category, this field contains the form ID.
 	pub form: Option<String>,
+	/// Whether this custom category is still active for this server
+	pub active: bool,
 }
 
 impl CustomCategory {

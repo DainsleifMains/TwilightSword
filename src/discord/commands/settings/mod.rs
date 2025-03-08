@@ -23,6 +23,7 @@ use type_map::concurrent::TypeMap;
 mod action_reason_complain_channel;
 mod admin_role;
 mod ban_appeal_ticket_channel;
+mod custom_categories;
 mod existing_partner_ticket_channel;
 mod message_reports_channel;
 mod new_partner_ticket_channel;
@@ -41,6 +42,7 @@ pub fn command_definition() -> Command {
 	.option(action_reason_complain_channel::subcommand_definition())
 	.option(admin_role::subcommand_definition())
 	.option(ban_appeal_ticket_channel::subcommand_definition())
+	.option(custom_categories::subcommand_definition())
 	.option(existing_partner_ticket_channel::subcommand_definition())
 	.option(message_reports_channel::subcommand_definition())
 	.option(new_partner_ticket_channel::subcommand_definition())
@@ -85,6 +87,16 @@ pub async fn handle_command(
 		}
 		"ban_appeal_ticket_channel" => {
 			ban_appeal_ticket_channel::handle_subcommand(
+				interaction,
+				&subcommand_data.value,
+				http_client,
+				application_id,
+				db_connection_pool,
+			)
+			.await
+		}
+		"custom_categories" => {
+			custom_categories::handle_subcommand(
 				interaction,
 				&subcommand_data.value,
 				http_client,

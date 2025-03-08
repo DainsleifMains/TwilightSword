@@ -53,6 +53,7 @@ CREATE TABLE custom_categories (
 	name TEXT NOT NULL,
 	channel discord_id NOT NULL,
 	form TEXT REFERENCES forms,
+	active BOOLEAN NOT NULL,
 	CONSTRAINT unique_name_for_guild UNIQUE (guild, name)
 );
 

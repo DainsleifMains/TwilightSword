@@ -45,6 +45,7 @@ diesel::table! {
 		name -> Text,
 		channel -> Int8,
 		form -> Nullable<Text>,
+		active -> Bool,
 	}
 }
 
