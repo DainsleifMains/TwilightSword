@@ -15,8 +15,8 @@ pub fn Dashboard() -> impl IntoView {
 	let params = use_params::<GuildParam>();
 	let guild_id = params.read().as_ref().ok().and_then(|params| params.guild);
 
-	let user_active_tickets = Resource::new(|| (), move |_| get_active_tickets_for_user(guild_id));
-	let user_closed_tickets = Resource::new(|| (), move |_| get_closed_tickets_for_user(guild_id));
+	let user_active_tickets = OnceResource::new(get_active_tickets_for_user(guild_id));
+	let user_closed_tickets = OnceResource::new(get_closed_tickets_for_user(guild_id));
 
 	view! {
 		<Transition fallback=|| view! { <div class="dashboard_ticket_list_loading">"Loading tickets..."</div> }>
