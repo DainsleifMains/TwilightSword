@@ -1,3 +1,15 @@
+#dashboard_layout {
+	display: flex;
+}
+
+#dashboard_tickets {
+	flex: 1 0 250px;
+}
+
+#dashboard_staff {
+	flex: 0 1 500px;
+}
+
 .dashboard_ticket_list {
 	th, td {
 		padding: 3px;

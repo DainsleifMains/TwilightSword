@@ -39,7 +39,6 @@ pub fn App() -> impl IntoView {
 #[component]
 fn MainPage() -> impl IntoView {
 	let params = use_params::<GuildParam>();
-
 	let guild_id = params.read().as_ref().ok().and_then(|params| params.guild);
 
 	view! {

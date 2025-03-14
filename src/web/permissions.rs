@@ -4,17 +4,17 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-#[cfg(feature = "ssr")]
-mod auth;
-mod pages;
-mod permissions;
-#[cfg(feature = "ssr")]
-pub mod server;
-#[cfg(feature = "ssr")]
-mod session;
-#[cfg(feature = "ssr")]
-mod session_key;
-#[cfg(feature = "ssr")]
-mod state;
+use serde::{Deserialize, Serialize};
 
-pub use pages::app::App;
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub enum PermissionLevel {
+	Member,
+	Staff,
+	Admin,
+}
+
+impl Default for PermissionLevel {
+	fn default() -> Self {
+		Self::Member
+	}
+}
