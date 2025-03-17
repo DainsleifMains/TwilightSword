@@ -118,7 +118,18 @@ pub fn Dashboard() -> impl IntoView {
 			<Transition>
 				<Show when=move || permission_level() != PermissionLevel::Member>
 					<div id="dashboard_staff">
-						<h2>Staff Dashboard</h2>
+						<h2>Staff Menu</h2>
+						<ul>
+							<li>
+								<a href={make_staff_open_ticket_list_url(guild_id)}>
+									"Open Tickets"
+								</a>
+							</li>
+						</ul>
+
+						<Show when=move || permission_level() == PermissionLevel::Admin>
+							<h2>Admin Menu</h2>
+						</Show>
 					</div>
 				</Show>
 			</Transition>
@@ -169,6 +180,7 @@ pub async fn fetch_permission_level(guild_id: Option<u64>) -> Result<PermissionL
 	}
 }
 
+/// Makes a URL to the view for a ticket
 fn make_ticket_url(guild_id: Option<u64>, ticket_id: &str) -> String {
 	match guild_id {
 		Some(id) => format!("/{}/ticket/{}", id, ticket_id),
@@ -176,6 +188,15 @@ fn make_ticket_url(guild_id: Option<u64>, ticket_id: &str) -> String {
 	}
 }
 
+/// Makes a URL to the list of open tickets for staff
+fn make_staff_open_ticket_list_url(guild_id: Option<u64>) -> String {
+	match guild_id {
+		Some(id) => format!("/{}/staff/open_tickets", id),
+		None => String::from("/staff/open_tickets"),
+	}
+}
+
+/// Information about active tickets for showing on the dashboard
 #[derive(Debug, Deserialize, Serialize)]
 pub struct ActiveTicketMetadata {
 	id: String,
@@ -184,6 +205,7 @@ pub struct ActiveTicketMetadata {
 	last_message_time: DateTime<Utc>,
 }
 
+/// Information about closed tickets for showing on the dashboard
 #[derive(Debug, Deserialize, Serialize)]
 pub struct ClosedTicketMetadata {
 	id: String,
@@ -191,6 +213,9 @@ pub struct ClosedTicketMetadata {
 	closed_at: DateTime<Utc>,
 }
 
+/// Gets all active tickets for the current user.
+///
+/// Requires the guild ID parameter from the URL for correct guild lookup.
 #[server]
 async fn get_active_tickets_for_user(guild_id: Option<u64>) -> Result<Vec<ActiveTicketMetadata>, ServerFnError> {
 	use crate::discord::users::get_member_data;
@@ -251,6 +276,9 @@ async fn get_active_tickets_for_user(guild_id: Option<u64>) -> Result<Vec<Active
 	Ok(tickets)
 }
 
+/// Gets closed tickets for a user.
+///
+/// Requires the guild ID parameter from the URL for accurate guild lookup.
 #[server]
 async fn get_closed_tickets_for_user(guild_id: Option<u64>) -> Result<Vec<ClosedTicketMetadata>, ServerFnError> {
 	use crate::model::{Ticket, database_id_from_discord_id};
