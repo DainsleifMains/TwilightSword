@@ -4,7 +4,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-use crate::web::pages::utils::GuildParam;
+use crate::web::pages::utils::{GuildParam, make_ticket_url};
 use crate::web::permissions::PermissionLevel;
 use chrono::{DateTime, Utc};
 use leptos::prelude::*;
@@ -180,14 +180,6 @@ pub async fn fetch_permission_level(guild_id: Option<u64>) -> Result<PermissionL
 	}
 }
 
-/// Makes a URL to the view for a ticket
-fn make_ticket_url(guild_id: Option<u64>, ticket_id: &str) -> String {
-	match guild_id {
-		Some(id) => format!("/{}/ticket/{}", id, ticket_id),
-		None => format!("/ticket/{}", ticket_id),
-	}
-}
-
 /// Makes a URL to the list of open tickets for staff
 fn make_staff_open_ticket_list_url(guild_id: Option<u64>) -> String {
 	match guild_id {
@@ -218,7 +210,7 @@ pub struct ClosedTicketMetadata {
 /// Requires the guild ID parameter from the URL for correct guild lookup.
 #[server]
 async fn get_active_tickets_for_user(guild_id: Option<u64>) -> Result<Vec<ActiveTicketMetadata>, ServerFnError> {
-	use crate::discord::users::get_member_data;
+	use crate::discord::utils::users::get_member_data;
 	use crate::model::{Ticket, TicketMessage, database_id_from_discord_id};
 	use crate::schema::{ticket_messages, tickets};
 	use crate::web::pages::server_utils::{get_guild_id_from_request, get_user_id_from_request};

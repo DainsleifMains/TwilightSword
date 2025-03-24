@@ -86,8 +86,12 @@ pub fn TicketPage() -> impl IntoView {
 
 #[server]
 async fn get_ticket_data(client_guild_id: Option<u64>, ticket_id: String) -> Result<Option<TicketData>, ServerFnError> {
-	use crate::model::{CustomCategory, Ticket, TicketMessage as TicketMessageDb};
-	use crate::schema::{custom_categories, ticket_messages, tickets};
+	use crate::discord::utils::permissions::channel_permissions;
+	use crate::model::{
+		BuiltInTicketCategory, CustomCategory, Guild, Ticket, TicketMessage as TicketMessageDb,
+		database_id_from_discord_id,
+	};
+	use crate::schema::{custom_categories, guilds, ticket_messages, tickets};
 	use crate::web::pages::server_utils::{get_guild_data_from_request, get_user_id_from_request};
 	use crate::web::pages::utils::TicketMessage as TicketMessageWeb;
 	use crate::web::state::AppState;
@@ -95,6 +99,7 @@ async fn get_ticket_data(client_guild_id: Option<u64>, ticket_id: String) -> Res
 	use std::collections::{HashMap, HashSet};
 	use std::sync::Arc;
 	use tokio::task::JoinSet;
+	use twilight_model::guild::Permissions;
 	use twilight_model::id::Id;
 	use twilight_model::id::marker::UserMarker;
 
@@ -146,13 +151,54 @@ async fn get_ticket_data(client_guild_id: Option<u64>, ticket_id: String) -> Res
 		let user_response = discord_client.guild_member(guild_id, request_user).await?;
 		let user = user_response.model().await?;
 		let staff_role = guild_data.get_staff_role();
-		if user.roles.contains(&staff_role) {
-			ticket_messages::table
-				.filter(ticket_messages::ticket.eq(&ticket_id))
-				.load(&mut db_connection)?
-		} else {
+		if !user.roles.contains(&staff_role) {
 			return Ok(None);
 		}
+
+		// Before allowing staff to view the ticket, we need to ensure the staff member has access to the ticket's staff channel.
+		// This allows us to do things like have tickets private to administrators (for example).
+		match (&ticket.built_in_category, &ticket.custom_category) {
+			(Some(category), None) => {
+				let db_guild_id = database_id_from_discord_id(guild_id.get());
+				let guild: Guild = guilds::table.find(db_guild_id).first(&mut db_connection)?;
+				let category_channel = match category {
+					BuiltInTicketCategory::BanAppeal => guild.get_ban_appeal_ticket_channel(),
+					BuiltInTicketCategory::NewPartner => guild.get_new_partner_ticket_channel(),
+					BuiltInTicketCategory::ExistingPartner => guild.get_existing_partner_ticket_channel(),
+					BuiltInTicketCategory::MessageReport => guild.get_message_reports_channel(),
+				};
+				let Some(category_channel) = category_channel else {
+					return Ok(None);
+				};
+
+				let permissions = channel_permissions(guild_id, category_channel, &discord_client).await;
+				let permissions = match permissions {
+					Ok(perms) => perms,
+					Err(error) => return Err(ServerFnError::ServerError(error.to_string())),
+				};
+				if !permissions.contains(Permissions::VIEW_CHANNEL) {
+					return Ok(None);
+				}
+			}
+			(None, Some(category)) => {
+				let custom_category: CustomCategory =
+					custom_categories::table.find(category).first(&mut db_connection)?;
+				let category_channel = custom_category.get_channel();
+				let permissions = channel_permissions(guild_id, category_channel, &discord_client).await;
+				let permissions = match permissions {
+					Ok(perms) => perms,
+					Err(error) => return Err(ServerFnError::ServerError(error.to_string())),
+				};
+				if !permissions.contains(Permissions::VIEW_CHANNEL) {
+					return Ok(None);
+				}
+			}
+			_ => unreachable!(),
+		}
+
+		ticket_messages::table
+			.filter(ticket_messages::ticket.eq(&ticket_id))
+			.load(&mut db_connection)?
 	};
 
 	let mut author_ids: HashSet<Id<UserMarker>> = HashSet::new();

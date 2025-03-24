@@ -9,6 +9,7 @@ use super::errors::not_found::NotFound;
 use super::guild::dashboard::Dashboard;
 use super::guild::ticket::TicketPage;
 use super::header::PageHeader;
+use super::staff::OpenTickets;
 use super::utils::{GuildParam, get_guild_data};
 use leptos::prelude::*;
 use leptos_meta::{Stylesheet, Title, provide_meta_context};
@@ -29,6 +30,7 @@ pub fn App() -> impl IntoView {
 			<Routes fallback=|| view! { NotFound }>
 				<ParentRoute path=path!("/:guild?") view=MainPage>
 					<Route path=path!("/ticket/:ticket") view=TicketPage />
+					<Route path=path!("/staff/open_tickets") view=OpenTickets />
 					<Route path=path!("/") view=Dashboard />
 				</ParentRoute>
 			</Routes>

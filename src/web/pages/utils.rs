@@ -67,3 +67,11 @@ pub struct TicketMessage {
 	pub internal: bool,
 	pub body: String,
 }
+
+/// Makes a URL to the view for a ticket
+pub fn make_ticket_url(guild_id: Option<u64>, ticket_id: &str) -> String {
+	match guild_id {
+		Some(id) => format!("/{}/ticket/{}", id, ticket_id),
+		None => format!("/ticket/{}", ticket_id),
+	}
+}

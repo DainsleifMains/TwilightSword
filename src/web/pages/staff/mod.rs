@@ -4,12 +4,6 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-mod commands;
-mod connection;
-mod events;
-mod incoming_messages;
-mod interactions;
-mod state;
-pub mod utils;
+mod open_tickets;
 
-pub use connection::{run_bot, set_up_client};
+pub use open_tickets::OpenTickets;
