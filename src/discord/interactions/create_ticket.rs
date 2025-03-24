@@ -589,7 +589,8 @@ async fn handle_message_modal_data(
 		return Ok(());
 	};
 
-	if ticket_title.len() > MAX_TICKET_TITLE_LENGTH.into() {
+	let max_ticket_title_len: usize = MAX_TICKET_TITLE_LENGTH.into();
+	if ticket_title.len() > max_ticket_title_len {
 		let response = format!(
 			"Your ticket couldn't be sent, as the title is too long.\n{}",
 			try_again_text(&ticket_title, &ticket_message)
