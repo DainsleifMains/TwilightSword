@@ -125,6 +125,11 @@ pub fn Dashboard() -> impl IntoView {
 									"Open Tickets"
 								</a>
 							</li>
+							<li>
+								<a href={make_form_manager_url(guild_id)}>
+									"Form Manager"
+								</a>
+							</li>
 						</ul>
 
 						<Show when=move || permission_level() == PermissionLevel::Admin>
@@ -185,6 +190,14 @@ fn make_staff_open_ticket_list_url(guild_id: Option<u64>) -> String {
 	match guild_id {
 		Some(id) => format!("/{}/staff/open_tickets", id),
 		None => String::from("/staff/open_tickets"),
+	}
+}
+
+/// Makes a URL to the form manager
+fn make_form_manager_url(guild_id: Option<u64>) -> String {
+	match guild_id {
+		Some(id) => format!("/{}/staff/manage_forms", id),
+		None => String::from("/staff/manage_forms")
 	}
 }
 

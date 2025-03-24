@@ -102,7 +102,11 @@ async fn get_active_tickets(guild_id: Option<u64>) -> Result<Vec<StaffTicketMeta
 		usernames_cache: &mut HashMap<Id<UserMarker>, String>,
 	) -> Result<StaffTicketMetadata, ServerFnError> {
 		let last_message: TicketMessage = ticket_messages::table
-			.filter(ticket_messages::ticket.eq(&ticket.id).and(ticket_messages::user_message.is_not_null()))
+			.filter(
+				ticket_messages::ticket
+					.eq(&ticket.id)
+					.and(ticket_messages::user_message.is_not_null()),
+			)
 			.order(ticket_messages::send_time.desc())
 			.first(db_connection)?;
 		let with_user = ticket.get_with_user();
