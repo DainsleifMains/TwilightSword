@@ -197,7 +197,7 @@ fn make_staff_open_ticket_list_url(guild_id: Option<u64>) -> String {
 fn make_form_manager_url(guild_id: Option<u64>) -> String {
 	match guild_id {
 		Some(id) => format!("/{}/staff/manage_forms", id),
-		None => String::from("/staff/manage_forms")
+		None => String::from("/staff/manage_forms"),
 	}
 }
 

@@ -75,3 +75,9 @@ pub fn make_ticket_url(guild_id: Option<u64>, ticket_id: &str) -> String {
 		None => format!("/ticket/{}", ticket_id),
 	}
 }
+
+#[derive(Clone, Debug, Params, PartialEq)]
+pub struct FormParams {
+	pub guild: Option<u64>,
+	pub form_id: Option<String>,
+}
