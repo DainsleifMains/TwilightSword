@@ -118,7 +118,6 @@ pub fn FormEditor() -> impl IntoView {
 	view! {
 		<h2>"Edit Form"</h2>
 		<Transition>
-			{form.read();}
 			<form on:submit=form_submit>
 				<div class="form_manager_submit_errors">
 					<ul>
