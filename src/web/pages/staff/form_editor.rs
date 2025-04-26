@@ -116,7 +116,7 @@ pub fn FormEditor() -> impl IntoView {
 	};
 
 	view! {
-		<h2>Edit Form</h2>
+		<h2>"Edit Form"</h2>
 		<Transition>
 			{form.read();}
 			<form on:submit=form_submit>
@@ -133,7 +133,9 @@ pub fn FormEditor() -> impl IntoView {
 				</div>
 				<div>
 					<label>
-						"Form Title"
+						<span class="form_manager_label_text">
+							"Form Title"
+						</span>
 						<input
 							type="text"
 							class="form_manager_title_input"
@@ -142,6 +144,7 @@ pub fn FormEditor() -> impl IntoView {
 					</label>
 				</div>
 				<div>
+					<h3>"Questions"</h3>
 					<For
 						each=move || form_questions.question_list()
 						key=|question| question.read().id.clone()
@@ -167,7 +170,7 @@ pub fn FormEditor() -> impl IntoView {
 						"Add Question"
 					</button>
 				</div>
-				<div>
+				<div class="form_manager_save_button">
 					<button type="submit">Save Changes</button>
 				</div>
 			</form>
