@@ -148,18 +148,34 @@ pub fn FormEditor() -> impl IntoView {
 					<For
 						each=move || form_questions.question_list()
 						key=|question| question.read().id.clone()
-						children=|question| {
+						children=move |question| {
 							let (question_prompt, set_question_prompt) = signal(question.read().question.clone());
+							let question_id = question.read().id.clone();
+
 							Effect::new(move |_| {
 								let prompt = question_prompt.get();
 								question.update(|question| question.question = prompt);
 							});
+
+							let remove_question_handler = move |_: MouseEvent| {
+								form_questions.question_list().write().retain(|question| question.id != question_id);
+							};
 							view! {
 								<div>
 									<input
 										class="form_manager_question_prompt"
 										bind:value=(question_prompt, set_question_prompt)
 									/>
+									<a
+										class="click"
+										on:click=remove_question_handler
+									>
+										<img
+											src="/images/remove.png"
+											alt="Remove question"
+											class="form_manager_remove_question"
+										/>
+									</a>
 								</div>
 							}
 						}

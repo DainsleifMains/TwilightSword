@@ -11,4 +11,8 @@ a {
 	&:visited {
 		color: #fcf;
 	}
+	
+	&.click {
+		cursor: pointer;
+	}
 }
