@@ -8,7 +8,7 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 async-trait = { version = "0.1.88", optional = true }
-bigdecimal = { version = "0.4.7", optional = true }
+bigdecimal = { version = "0.4.8", optional = true }
 chrono = { version = "0.4.40", features = ["serde"] }
 console_error_panic_hook = { version = "0.1.7", optional = true }
 cuid2 = { version = "0.1.4", optional = true }
@@ -44,7 +44,7 @@ features = [
 optional = true
 
 [dependencies.diesel]
-version = "2.2.8"
+version = "2.2.10"
 features = [
 	"chrono",
 	"numeric",
@@ -68,7 +68,7 @@ features = [
 optional = true
 
 [dependencies.tokio]
-version = "1.44.1"
+version = "1.44.2"
 features = [
 	"fs",
 	"macros",
