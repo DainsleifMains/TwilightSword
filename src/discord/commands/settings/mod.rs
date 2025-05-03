@@ -22,11 +22,11 @@ use type_map::concurrent::TypeMap;
 
 mod action_reason_complain_channel;
 mod admin_role;
-mod ban_appeal_ticket_channel;
+mod ban_appeal_ticket;
 mod custom_categories;
-mod existing_partner_ticket_channel;
+mod existing_partner_ticket;
 mod message_reports_channel;
-mod new_partner_ticket_channel;
+mod new_partner_ticket;
 mod staff_role;
 mod start_ticket_channel;
 mod start_ticket_message;
@@ -41,11 +41,11 @@ pub fn command_definition() -> Command {
 	.default_member_permissions(Permissions::MANAGE_GUILD)
 	.option(action_reason_complain_channel::subcommand_definition())
 	.option(admin_role::subcommand_definition())
-	.option(ban_appeal_ticket_channel::subcommand_definition())
+	.option(ban_appeal_ticket::subcommand_definition())
 	.option(custom_categories::subcommand_definition())
-	.option(existing_partner_ticket_channel::subcommand_definition())
+	.option(existing_partner_ticket::subcommand_definition())
 	.option(message_reports_channel::subcommand_definition())
-	.option(new_partner_ticket_channel::subcommand_definition())
+	.option(new_partner_ticket::subcommand_definition())
 	.option(staff_role::subcommand_definition())
 	.option(start_ticket_channel::subcommand_definition())
 	.option(start_ticket_message::subcommand_definition())
@@ -85,8 +85,8 @@ pub async fn handle_command(
 			)
 			.await
 		}
-		"ban_appeal_ticket_channel" => {
-			ban_appeal_ticket_channel::handle_subcommand(
+		"ban_appeal_ticket" => {
+			ban_appeal_ticket::handle_subcommand(
 				interaction,
 				&subcommand_data.value,
 				http_client,
@@ -105,8 +105,8 @@ pub async fn handle_command(
 			)
 			.await
 		}
-		"existing_partner_ticket_channel" => {
-			existing_partner_ticket_channel::handle_subcommand(
+		"existing_partner_ticket" => {
+			existing_partner_ticket::handle_subcommand(
 				interaction,
 				&subcommand_data.value,
 				http_client,
@@ -125,8 +125,8 @@ pub async fn handle_command(
 			)
 			.await
 		}
-		"new_partner_ticket_channel" => {
-			new_partner_ticket_channel::handle_subcommand(
+		"new_partner_ticket" => {
+			new_partner_ticket::handle_subcommand(
 				interaction,
 				&subcommand_data.value,
 				http_client,
