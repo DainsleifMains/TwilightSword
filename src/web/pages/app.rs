@@ -50,7 +50,10 @@ fn MainPage() -> impl IntoView {
 			{
 				match data {
 					Ok(Some(data)) => view! {
-						<PageHeader guild_data={data.clone()} />
+						<PageHeader
+							guild_id={guild_id}
+							guild_data={data.clone()}
+						/>
 						<main>
 							<Outlet />
 						</main>

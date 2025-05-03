@@ -8,9 +8,12 @@ use super::utils::GuildData;
 use leptos::prelude::*;
 
 #[component]
-pub fn PageHeader(guild_data: GuildData) -> impl IntoView {
+pub fn PageHeader(guild_id: Option<u64>, guild_data: GuildData) -> impl IntoView {
 	view! {
-		<div id="header">
+		<a
+			id="header"
+			href={guild_url(guild_id)}
+		>
 			<div>
 				{
 					guild_data
@@ -22,6 +25,13 @@ pub fn PageHeader(guild_data: GuildData) -> impl IntoView {
 				}
 			</div>
 			<h1 id="header_guild_name">{guild_data.name.clone()}</h1>
-		</div>
+		</a>
+	}
+}
+
+fn guild_url(guild_id: Option<u64>) -> String {
+	match guild_id {
+		Some(id) => format!("/{}", id),
+		None => String::from("/"),
 	}
 }
