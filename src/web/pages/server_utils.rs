@@ -8,7 +8,7 @@ use crate::model::{Guild, database_id_from_discord_id};
 use crate::schema::guilds;
 use crate::web::session_key::DISCORD_USER;
 use crate::web::state::AppState;
-use axum::extract::Host;
+use axum_extra::extract::Host;
 use diesel::prelude::*;
 use leptos::prelude::*;
 use leptos_axum::extract_with_state;

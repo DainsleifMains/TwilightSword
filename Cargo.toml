@@ -8,24 +8,25 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 async-trait = { version = "0.1.88", optional = true }
+axum-extra = { version = "0.10.1", optional = true }
 bigdecimal = { version = "0.4.8", optional = true }
-chrono = { version = "0.4.40", features = ["serde"] }
+chrono = { version = "0.4.41", features = ["serde"] }
 console_error_panic_hook = { version = "0.1.7", optional = true }
 cuid2 = { version = "0.1.4", optional = true }
 diesel_migrations = { version = "2.2.0", optional = true }
 kdl = { version = "6.3.4", optional = true }
-leptos = "0.7.8"
-leptos_axum = { version = "0.7.8", optional = true }
-leptos_meta = "0.7.8"
-leptos_router = "0.7.8"
+leptos = "0.8.0"
+leptos_axum = { version = "0.8.0", optional = true }
+leptos_meta = "0.8.0"
+leptos_router = "0.8.0"
 oauth2 = { version = "5.0.0", optional = true }
-reactive_stores = "0.1.8"
+reactive_stores = "0.2.0"
 serde = "1.0.219"
 serde_json = "1.0.140"
 time = { version = "0.3.41", optional = true } # Just for tower-sessions integration; use chrono otherwise
 tower = { version = "0.5.2", optional = true }
 tower-http = { version = "0.6.2", optional = true }
-tower-sessions = { version = "0.13.0", optional = true }
+tower-sessions = { version = "0.14.0", optional = true }
 tracing = "0.1.41"
 tracing-subscriber = "0.3.19"
 twilight-cache-inmemory = { version = "0.16.0", optional = true }
@@ -37,7 +38,7 @@ twilight-validate = { version = "0.16.0", optional = true }
 type-map = { version = "0.5.0", optional = true }
 
 [dependencies.axum]
-version = "0.7.9"
+version = "0.8.4"
 features = [
 	"macros"
 ]
@@ -61,7 +62,7 @@ features = [
 optional = true
 
 [dependencies.miette]
-version = "7.5.0"
+version = "7.6.0"
 features = [
 	"fancy"
 ]
@@ -101,6 +102,7 @@ hydrate = [
 ssr = [
 	"dep:async-trait",
 	"dep:axum",
+	"dep:axum-extra",
 	"dep:bigdecimal",
 	"dep:cuid2",
 	"dep:diesel",
