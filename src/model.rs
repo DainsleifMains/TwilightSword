@@ -97,14 +97,14 @@ pub struct Guild {
 	///
 	/// To get a Discord-facing version of this more easily, use [Self::get_action_reason_complain_channel].
 	pub action_reason_complain_channel: Option<i64>,
+	/// For guilds that have a custom domain name pointing to the website, the custom host they use.
+	pub custom_host: Option<String>,
 	/// The ID of the form used for ban appeal tickets, if those tickets use a form.
 	pub ban_appeal_ticket_form: Option<String>,
 	/// The ID of the form used for new partnership request tickets, if those tickets use a form.
 	pub new_partner_ticket_form: Option<String>,
 	/// The ID of the form used for existing partnership tickets, if those tickets use a form.
 	pub existing_partner_ticket_form: Option<String>,
-	/// For guilds that have a custom domain name pointing to the website, the custom host they use.
-	pub custom_host: Option<String>,
 }
 
 impl Guild {

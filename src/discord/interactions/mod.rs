@@ -45,6 +45,18 @@ pub async fn route_interaction(
 			)
 			.await
 		}
+		Some("settings") => {
+			settings::route_settings_interaction(
+				interaction,
+				interaction_data,
+				&custom_id_path,
+				http_client,
+				application_id,
+				db_connection_pool,
+				bot_state,
+			)
+			.await
+		}
 		Some("setup") => {
 			setup::route_setup_interaction(
 				interaction,

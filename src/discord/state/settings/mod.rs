@@ -4,5 +4,5 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-pub mod form_set;
+pub mod ban_appeal_ticket_form_set;
 pub mod start_ticket_message;

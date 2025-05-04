@@ -87,7 +87,7 @@ pub async fn handle_subcommand(
 			return Ok(());
 		}
 		Err(error) => {
-			tracing::error!(source = ?error, "Failed to retrieve guild for getting or updating ban appeal ticket channel");
+			tracing::error!(source = ?error, "Failed to retrieve guild for getting or updating ban appeal ticket settings");
 			let response = InteractionResponseDataBuilder::new()
 				.content("An internal error occurred handling this command.")
 				.flags(MessageFlags::EPHEMERAL)
@@ -105,12 +105,10 @@ pub async fn handle_subcommand(
 	};
 
 	let CommandOptionValue::SubCommandGroup(value_data) = subcommand_value else {
-		bail!(
-			"Command data is malformed; expected `/settings ban_appeal_ticket_channel` to get a subcommand group value"
-		);
+		bail!("Command data is malformed; expected `/settings ban_appeal_ticket` to get a subcommand group value");
 	};
 	let Some(value) = value_data.first() else {
-		bail!("Command data is malformed; expected `/settings ban_appeal_ticket_channel` to have a subcommand");
+		bail!("Command data is malformed; expected `/settings ban_appeal_ticket` to have a subcommand");
 	};
 	match value.name.as_str() {
 		"channel_get" => channel_get::execute(interaction, &guild, http_client, application_id).await,

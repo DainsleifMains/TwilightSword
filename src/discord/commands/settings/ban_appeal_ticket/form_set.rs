@@ -4,18 +4,18 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-use crate::discord::state::settings::form_set::{FormAssociationData, FormAssociations};
+use crate::discord::state::settings::ban_appeal_ticket_form_set::{
+	FormAssociationData, FormAssociations, form_association_components,
+};
 use crate::model::{Form, Guild};
 use crate::schema::forms;
 use diesel::prelude::*;
 use miette::IntoDiagnostic;
 use std::sync::Arc;
 use tokio::sync::RwLock;
+use tokio::time::{Duration, sleep};
 use twilight_http::client::Client;
 use twilight_model::channel::message::MessageFlags;
-use twilight_model::channel::message::component::{
-	ActionRow, Button, ButtonStyle, Component, SelectMenu, SelectMenuOption, SelectMenuType,
-};
 use twilight_model::gateway::payload::incoming::InteractionCreate;
 use twilight_model::http::interaction::{InteractionResponse, InteractionResponseType};
 use twilight_model::id::Id;
@@ -57,63 +57,9 @@ pub async fn execute(
 		return Ok(());
 	}
 
-	let mut select_options = Vec::with_capacity(25);
-	let form_component = |form: &Form| SelectMenuOption {
-		default: false,
-		description: None,
-		emoji: None,
-		label: form.title.clone(),
-		value: form.id.clone(),
-	};
-	if guild_forms.len() > 25 {
-		for form in guild_forms.iter().take(23) {
-			select_options.push(form_component(form));
-		}
-		select_options.push(SelectMenuOption {
-			default: false,
-			description: Some(String::from("See next page of forms")),
-			emoji: None,
-			label: String::from("Next Page"),
-			value: String::from(">1"),
-		});
-	} else {
-		for form in guild_forms.iter() {
-			select_options.push(form_component(form));
-		}
-	}
-
 	let session_id = cuid2::create_id();
 
-	let select_menu = SelectMenu {
-		channel_types: None,
-		custom_id: format!("{}/form", session_id),
-		default_values: None,
-		disabled: false,
-		kind: SelectMenuType::Text,
-		max_values: None,
-		min_values: None,
-		options: Some(select_options),
-		placeholder: Some(String::from("Form")),
-	};
-	let select_component = Component::SelectMenu(select_menu);
-	let select_row = Component::ActionRow(ActionRow {
-		components: vec![select_component],
-	});
-
-	let button_component = Component::Button(Button {
-		custom_id: Some(format!("{}/confirm", session_id)),
-		disabled: true,
-		emoji: None,
-		label: Some(String::from("Select Form")),
-		style: ButtonStyle::Primary,
-		url: None,
-		sku_id: None,
-	});
-	let button_row = Component::ActionRow(ActionRow {
-		components: vec![button_component],
-	});
-
-	let components = vec![select_row, button_row];
+	let components = form_association_components(&session_id, &guild_forms, None, 0);
 
 	let response = InteractionResponseDataBuilder::new().components(components).build();
 	let response = InteractionResponse {
@@ -128,11 +74,26 @@ pub async fn execute(
 	let session_data = FormAssociationData {
 		guild_id,
 		all_forms: guild_forms,
+		selected_form_id: None,
+		current_page: 0,
 	};
 
-	let mut state = bot_state.write().await;
-	let all_sessions = state.entry().or_insert_with(FormAssociations::default);
-	all_sessions.sessions.insert(session_id, session_data);
+	{
+		let mut state = bot_state.write().await;
+		let all_sessions = state.entry().or_insert_with(FormAssociations::default);
+		all_sessions.sessions.insert(session_id.clone(), session_data);
+	}
+
+	tokio::spawn(expire_session(bot_state, session_id));
 
 	Ok(())
+}
+
+async fn expire_session(bot_state: Arc<RwLock<TypeMap>>, session_id: String) {
+	sleep(Duration::from_secs(3600)).await;
+	let mut state = bot_state.write().await;
+	let all_sessions = state.get_mut::<FormAssociations>();
+	if let Some(all_sessions) = all_sessions {
+		all_sessions.sessions.remove(&session_id);
+	}
 }

@@ -10,13 +10,47 @@ use miette::bail;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use twilight_http::client::Client;
+use twilight_model::application::interaction::message_component::MessageComponentInteractionData;
 use twilight_model::application::interaction::modal::ModalInteractionData;
 use twilight_model::gateway::payload::incoming::InteractionCreate;
 use twilight_model::id::Id;
 use twilight_model::id::marker::ApplicationMarker;
 use type_map::concurrent::TypeMap;
 
+mod ban_appeal_ticket_form_set;
 mod start_ticket_message;
+
+pub async fn route_settings_interaction(
+	interaction: &InteractionCreate,
+	interaction_data: &MessageComponentInteractionData,
+	custom_id_path: &[String],
+	http_client: &Client,
+	application_id: Id<ApplicationMarker>,
+	db_connection_pool: Pool<ConnectionManager<PgConnection>>,
+	bot_state: Arc<RwLock<TypeMap>>,
+) -> miette::Result<()> {
+	let next_route = custom_id_path.get(1);
+
+	match next_route.map(|route| route.as_str()) {
+		Some("ban_appeal_ticket_form_set") => {
+			ban_appeal_ticket_form_set::route_ban_appeal_ticket_form_set_interaction(
+				interaction,
+				interaction_data,
+				custom_id_path,
+				http_client,
+				application_id,
+				db_connection_pool,
+				bot_state,
+			)
+			.await
+		}
+		_ => bail!(
+			"Unexpected settings interaction response encountered: {}\n{:?}",
+			interaction_data.custom_id,
+			interaction_data
+		),
+	}
+}
 
 pub async fn route_settings_modal(
 	interaction: &InteractionCreate,
