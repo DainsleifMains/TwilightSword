@@ -19,6 +19,7 @@ use type_map::concurrent::TypeMap;
 
 mod ban_appeal_ticket_form_set;
 mod existing_partner_ticket_form_set;
+mod new_partner_ticket_form_set;
 mod start_ticket_message;
 
 const FORM_SESSION_EXPIRED_TEXT: &str = "Form selection expired; please run the command again to select a new form.";
@@ -49,6 +50,18 @@ pub async fn route_settings_interaction(
 		}
 		Some("existing_partner_ticket_form_set") => {
 			existing_partner_ticket_form_set::route_existing_partner_ticket_form_set_interaction(
+				interaction,
+				interaction_data,
+				custom_id_path,
+				http_client,
+				application_id,
+				db_connection_pool,
+				bot_state,
+			)
+			.await
+		}
+		Some("new_partner_ticket_form_set") => {
+			new_partner_ticket_form_set::route_new_partner_ticket_form_set_interaction(
 				interaction,
 				interaction_data,
 				custom_id_path,

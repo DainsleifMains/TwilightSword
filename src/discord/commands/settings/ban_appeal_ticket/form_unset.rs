@@ -58,5 +58,6 @@ pub async fn execute(
 		.create_response(interaction.id, &interaction.token, &response)
 		.await
 		.into_diagnostic()?;
+
 	Ok(())
 }

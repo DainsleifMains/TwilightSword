@@ -10,6 +10,8 @@ use crate::schema::guilds;
 use diesel::prelude::*;
 use diesel::r2d2::{ConnectionManager, Pool};
 use miette::{IntoDiagnostic, bail};
+use std::sync::Arc;
+use tokio::sync::RwLock;
 use twilight_http::client::Client;
 use twilight_model::application::command::CommandOption;
 use twilight_model::application::interaction::application_command::CommandOptionValue;
@@ -21,10 +23,14 @@ use twilight_model::id::Id;
 use twilight_model::id::marker::ApplicationMarker;
 use twilight_util::builder::InteractionResponseDataBuilder;
 use twilight_util::builder::command::{ChannelBuilder, SubCommandBuilder, SubCommandGroupBuilder};
+use type_map::concurrent::TypeMap;
 
 mod channel_get;
 mod channel_set;
 mod channel_unset;
+mod form_get;
+mod form_set;
+mod form_unset;
 
 pub fn subcommand_definition() -> CommandOption {
 	let channel_option = ChannelBuilder::new("new_partner_ticket_channel", "New partner ticket settings")
@@ -37,8 +43,12 @@ pub fn subcommand_definition() -> CommandOption {
 		SubCommandBuilder::new("channel_set", "Sets the new partner ticket channel").option(channel_option);
 	let channel_unset = SubCommandBuilder::new("channel_unset", "Removes the new partner ticket channel");
 
+	let form_get = SubCommandBuilder::new("form_get", "Gets the new partner ticket form");
+	let form_set = SubCommandBuilder::new("form_set", "Sets the new partner ticket form");
+	let form_unset = SubCommandBuilder::new("form_unset", "Removes the new partner ticket form");
+
 	SubCommandGroupBuilder::new("new_partner_ticket", "New partner ticket settings")
-		.subcommands([channel_get, channel_set, channel_unset])
+		.subcommands([channel_get, channel_set, channel_unset, form_get, form_set, form_unset])
 		.build()
 }
 
@@ -48,6 +58,7 @@ pub async fn handle_subcommand(
 	http_client: &Client,
 	application_id: Id<ApplicationMarker>,
 	db_connection_pool: Pool<ConnectionManager<PgConnection>>,
+	bot_state: Arc<RwLock<TypeMap>>,
 ) -> miette::Result<()> {
 	let Some(guild_id) = interaction.guild_id else {
 		bail!("Settings command was used outside of a guild");
@@ -118,6 +129,20 @@ pub async fn handle_subcommand(
 		"channel_unset" => {
 			channel_unset::execute(interaction, &guild, http_client, application_id, &mut db_connection).await
 		}
+		"form_get" => form_get::execute(interaction, &guild, http_client, application_id, &mut db_connection).await,
+		"form_set" => {
+			form_set::execute(
+				interaction,
+				guild_id,
+				&guild,
+				http_client,
+				application_id,
+				&mut db_connection,
+				bot_state,
+			)
+			.await
+		}
+		"form_unset" => form_unset::execute(interaction, &guild, http_client, application_id, &mut db_connection).await,
 		_ => bail!(
 			"Unknown settings new_partner_ticket_channel subcommand encountered: {}\n{:?}",
 			value.name,

@@ -5,18 +5,18 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use crate::model::Guild;
-use crate::schema::guilds;
+use crate::schema::forms;
 use diesel::prelude::*;
 use miette::IntoDiagnostic;
 use twilight_http::client::Client;
-use twilight_model::channel::message::MessageFlags;
+use twilight_model::channel::message::AllowedMentions;
 use twilight_model::gateway::payload::incoming::InteractionCreate;
 use twilight_model::http::interaction::{InteractionResponse, InteractionResponseType};
 use twilight_model::id::Id;
 use twilight_model::id::marker::ApplicationMarker;
 use twilight_util::builder::InteractionResponseDataBuilder;
 
-/// Unsets the form associated with existing partner tickets
+/// Gets the form associated with the new partner ticket type
 pub async fn execute(
 	interaction: &InteractionCreate,
 	guild: &Guild,
@@ -24,32 +24,25 @@ pub async fn execute(
 	application_id: Id<ApplicationMarker>,
 	db_connection: &mut PgConnection,
 ) -> miette::Result<()> {
+	let form_id = guild.new_partner_ticket_form.as_ref();
+
 	let interaction_client = http_client.interaction(application_id);
-	let response = match guild.existing_partner_ticket_form.as_ref() {
-		Some(_) => {
-			let no_form: Option<String> = None;
-			let db_result = diesel::update(guilds::table)
-				.filter(guilds::guild_id.eq(&guild.guild_id))
-				.set(guilds::existing_partner_ticket_form.eq(no_form))
-				.execute(db_connection);
-			match db_result {
-				Ok(_) => InteractionResponseDataBuilder::new()
-					.content("The existing partner ticket form has been unset.")
-					.build(),
-				Err(error) => {
-					tracing::error!(source = ?error, "Failed to remove the existing partner ticket form for a server");
-					InteractionResponseDataBuilder::new()
-						.content("An internal error occurred, so the existing partner ticket form couldn't be unset.")
-						.flags(MessageFlags::EPHEMERAL)
-						.build()
-				}
-			}
+	let response_content = match form_id {
+		Some(form_id) => {
+			let mut form_name: String = forms::table
+				.find(form_id)
+				.select(forms::title)
+				.first(db_connection)
+				.into_diagnostic()?;
+			form_name = form_name.replace("`", "\\`");
+			format!("New partners tickets use the form `{}`.", form_name)
 		}
-		None => InteractionResponseDataBuilder::new()
-			.content("There is no existing partner ticket form.")
-			.flags(MessageFlags::EPHEMERAL)
-			.build(),
+		None => String::from("No new partners form is set."),
 	};
+	let response = InteractionResponseDataBuilder::new()
+		.content(response_content)
+		.allowed_mentions(AllowedMentions::default())
+		.build();
 	let response = InteractionResponse {
 		kind: InteractionResponseType::ChannelMessageWithSource,
 		data: Some(response),

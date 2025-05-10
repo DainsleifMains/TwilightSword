@@ -16,7 +16,7 @@ use twilight_model::id::Id;
 use twilight_model::id::marker::ApplicationMarker;
 use twilight_util::builder::InteractionResponseDataBuilder;
 
-/// Unsets the form associated with existing partner tickets
+/// Unsets the form associated with new partner tickets
 pub async fn execute(
 	interaction: &InteractionCreate,
 	guild: &Guild,
@@ -25,28 +25,28 @@ pub async fn execute(
 	db_connection: &mut PgConnection,
 ) -> miette::Result<()> {
 	let interaction_client = http_client.interaction(application_id);
-	let response = match guild.existing_partner_ticket_form.as_ref() {
+	let response = match guild.new_partner_ticket_form.as_ref() {
 		Some(_) => {
 			let no_form: Option<String> = None;
 			let db_result = diesel::update(guilds::table)
 				.filter(guilds::guild_id.eq(&guild.guild_id))
-				.set(guilds::existing_partner_ticket_form.eq(no_form))
+				.set(guilds::new_partner_ticket_form.eq(no_form))
 				.execute(db_connection);
 			match db_result {
 				Ok(_) => InteractionResponseDataBuilder::new()
-					.content("The existing partner ticket form has been unset.")
+					.content("The new partner ticket form has been unset.")
 					.build(),
 				Err(error) => {
-					tracing::error!(source = ?error, "Failed to remove the existing partner ticket form for a server");
+					tracing::error!(source = ?error, "Failed to remove the new partner ticket form for a server");
 					InteractionResponseDataBuilder::new()
-						.content("An internal error occurred, so the existing partner ticket form couldn't be unset.")
+						.content("An internal error occurred, so the new partner ticket form couldn't be unset.")
 						.flags(MessageFlags::EPHEMERAL)
 						.build()
 				}
 			}
 		}
 		None => InteractionResponseDataBuilder::new()
-			.content("There is no existing partner ticket form.")
+			.content("There is no new partner ticket form.")
 			.flags(MessageFlags::EPHEMERAL)
 			.build(),
 	};

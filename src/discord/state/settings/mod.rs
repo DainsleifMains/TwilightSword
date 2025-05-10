@@ -6,5 +6,6 @@
 
 pub mod ban_appeal_ticket_form_set;
 pub mod existing_partner_ticket_form_set;
+pub mod new_partner_ticket_form_set;
 pub mod start_ticket_message;
 mod ticket_form_set;
