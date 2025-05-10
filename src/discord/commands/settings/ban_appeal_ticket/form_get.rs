@@ -35,7 +35,7 @@ pub async fn execute(
 				.first(db_connection)
 				.into_diagnostic()?;
 			form_name = form_name.replace("`", "\\`");
-			format!("Ban appeals ticket use the form `{}`.", form_name)
+			format!("Ban appeals tickets use the form `{}`.", form_name)
 		}
 		None => String::from("No ban appeal form is set."),
 	};
