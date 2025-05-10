@@ -49,7 +49,7 @@ pub fn FormEditor() -> impl IntoView {
 		form_questions.question_list().update(|questions| {
 			let form_position = questions.last().map(|question| question.form_position + 1).unwrap_or(1);
 			let new_question = FormDataQuestion {
-				id: String::new(),
+				id: format!("+{}", form_position),
 				form_position,
 				question: String::new(),
 			};
@@ -330,7 +330,7 @@ async fn update_form_data(guild_id: Option<u64>, form: FormData) -> Result<(), S
 		guild: db_guild_id,
 		title: form.title,
 	};
-	if save_form.id.is_empty() {
+	if save_form.id.starts_with('+') {
 		save_form.id = cuid2::create_id();
 	} else {
 		let form: Form = forms::table.find(&save_form.id).first(&mut db_connection)?;
