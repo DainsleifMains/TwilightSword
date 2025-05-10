@@ -15,12 +15,12 @@ console_error_panic_hook = { version = "0.1.7", optional = true }
 cuid2 = { version = "0.1.4", optional = true }
 diesel_migrations = { version = "2.2.0", optional = true }
 kdl = { version = "6.3.4", optional = true }
-leptos = "0.8.0"
-leptos_axum = { version = "0.8.0", optional = true }
-leptos_meta = "0.8.0"
-leptos_router = "0.8.0"
+leptos = "0.8.2"
+leptos_axum = { version = "0.8.2", optional = true }
+leptos_meta = "0.8.2"
+leptos_router = "0.8.2"
 oauth2 = { version = "5.0.0", optional = true }
-reactive_stores = "0.2.0"
+reactive_stores = "0.2.2"
 serde = "1.0.219"
 serde_json = "1.0.140"
 time = { version = "0.3.41", optional = true } # Just for tower-sessions integration; use chrono otherwise
@@ -69,7 +69,7 @@ features = [
 optional = true
 
 [dependencies.tokio]
-version = "1.44.2"
+version = "1.45.0"
 features = [
 	"fs",
 	"macros",
