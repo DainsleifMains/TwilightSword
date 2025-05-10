@@ -18,7 +18,10 @@ use twilight_model::id::marker::ApplicationMarker;
 use type_map::concurrent::TypeMap;
 
 mod ban_appeal_ticket_form_set;
+mod existing_partner_ticket_form_set;
 mod start_ticket_message;
+
+const FORM_SESSION_EXPIRED_TEXT: &str = "Form selection expired; please run the command again to select a new form.";
 
 pub async fn route_settings_interaction(
 	interaction: &InteractionCreate,
@@ -34,6 +37,18 @@ pub async fn route_settings_interaction(
 	match next_route.map(|route| route.as_str()) {
 		Some("ban_appeal_ticket_form_set") => {
 			ban_appeal_ticket_form_set::route_ban_appeal_ticket_form_set_interaction(
+				interaction,
+				interaction_data,
+				custom_id_path,
+				http_client,
+				application_id,
+				db_connection_pool,
+				bot_state,
+			)
+			.await
+		}
+		Some("existing_partner_ticket_form_set") => {
+			existing_partner_ticket_form_set::route_existing_partner_ticket_form_set_interaction(
 				interaction,
 				interaction_data,
 				custom_id_path,

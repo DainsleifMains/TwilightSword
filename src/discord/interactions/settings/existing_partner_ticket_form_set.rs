@@ -5,8 +5,8 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use super::FORM_SESSION_EXPIRED_TEXT;
-use crate::discord::state::settings::ban_appeal_ticket_form_set::{
-	BanAppealFormAssociations, ban_appeal_form_association_components,
+use crate::discord::state::settings::existing_partner_ticket_form_set::{
+	ExistingPartnerFormAssociations, existing_partner_form_association_components,
 };
 use crate::model::{Form, database_id_from_discord_id};
 use crate::schema::{forms, guilds};
@@ -24,7 +24,7 @@ use twilight_model::id::marker::ApplicationMarker;
 use twilight_util::builder::InteractionResponseDataBuilder;
 use type_map::concurrent::TypeMap;
 
-pub async fn route_ban_appeal_ticket_form_set_interaction(
+pub async fn route_existing_partner_ticket_form_set_interaction(
 	interaction: &InteractionCreate,
 	interaction_data: &MessageComponentInteractionData,
 	custom_id_path: &[String],
@@ -66,7 +66,7 @@ pub async fn route_ban_appeal_ticket_form_set_interaction(
 			.await
 		}
 		_ => bail!(
-			"Invalid action in custom_id path for ban appeal ticket form selection: {}\n{:?}",
+			"Invalid action in custom_id path for existing partner ticket form selection: {}\n{:?}",
 			action,
 			interaction_data
 		),
@@ -97,7 +97,7 @@ async fn selected_form(
 
 	let mut state = bot_state.write().await;
 
-	let Some(form_sessions) = state.get_mut::<BanAppealFormAssociations>() else {
+	let Some(form_sessions) = state.get_mut::<ExistingPartnerFormAssociations>() else {
 		let response = InteractionResponseDataBuilder::new()
 			.content(FORM_SESSION_EXPIRED_TEXT)
 			.components(Vec::new())
@@ -136,7 +136,7 @@ async fn selected_form(
 		session_data.selected_form_id = Some(selected_value.clone());
 	}
 
-	let new_components = ban_appeal_form_association_components(
+	let new_components = existing_partner_form_association_components(
 		session_id,
 		&session_data.all_forms,
 		session_data.selected_form_id.as_ref(),
@@ -176,7 +176,7 @@ async fn submit_form_selection(
 
 	let session_data = {
 		let mut state = bot_state.write().await;
-		let Some(form_sessions) = state.get_mut::<BanAppealFormAssociations>() else {
+		let Some(form_sessions) = state.get_mut::<ExistingPartnerFormAssociations>() else {
 			let response = InteractionResponseDataBuilder::new()
 				.content(FORM_SESSION_EXPIRED_TEXT)
 				.components(Vec::new())
@@ -230,7 +230,7 @@ async fn submit_form_selection(
 
 	let db_result = diesel::update(guilds::table)
 		.filter(guilds::guild_id.eq(db_guild_id))
-		.set(guilds::ban_appeal_ticket_form.eq(&selected_form_id))
+		.set(guilds::existing_partner_ticket_form.eq(&selected_form_id))
 		.execute(&mut db_connection);
 
 	let response = match db_result {
@@ -240,11 +240,14 @@ async fn submit_form_selection(
 				.first(&mut db_connection)
 				.into_diagnostic()?;
 			let form_name = form_data.title.replace("`", "\\`");
-			format!("The form for ban appeal tickets has been updated to `{}`.", form_name)
+			format!(
+				"The form for existing partner tickets has been updated to `{}`.",
+				form_name
+			)
 		}
 		Err(error) => {
-			tracing::error!(source = ?error, "Failed to update ban appeal ticket form");
-			String::from("An error occurred updating the ban appeal ticket form.")
+			tracing::error!(source = ?error, "Failed to update existing partner ticket form");
+			String::from("An error occurred updating the existing partner ticket form.")
 		}
 	};
 	let response = InteractionResponseDataBuilder::new()

@@ -12,12 +12,12 @@ use twilight_model::id::Id;
 use twilight_model::id::marker::GuildMarker;
 
 #[derive(Debug, Default)]
-pub struct BanAppealFormAssociations {
-	pub sessions: HashMap<String, BanAppealFormAssociationData>,
+pub struct ExistingPartnerFormAssociations {
+	pub sessions: HashMap<String, ExistingPartnerFormAssociationData>,
 }
 
 #[derive(Debug)]
-pub struct BanAppealFormAssociationData {
+pub struct ExistingPartnerFormAssociationData {
 	pub guild_id: Id<GuildMarker>,
 	pub all_forms: Vec<Form>,
 	pub selected_form_id: Option<String>,
@@ -25,14 +25,14 @@ pub struct BanAppealFormAssociationData {
 }
 
 /// Gets the message component data that should be used currently in the message containing the components
-pub fn ban_appeal_form_association_components(
+pub fn existing_partner_form_association_components(
 	session_id: &str,
 	form_list: &[Form],
 	selected_id: Option<&String>,
 	page_number: usize,
 ) -> Vec<Component> {
 	ticket_form_association_components(
-		"ban_appeal_ticket_form_set",
+		"existing_partner_ticket_form_set",
 		session_id,
 		form_list,
 		selected_id,

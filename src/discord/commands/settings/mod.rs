@@ -113,6 +113,7 @@ pub async fn handle_command(
 				http_client,
 				application_id,
 				db_connection_pool,
+				bot_state,
 			)
 			.await
 		}

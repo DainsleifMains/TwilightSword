@@ -4,8 +4,8 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-use crate::discord::state::settings::ban_appeal_ticket_form_set::{
-	BanAppealFormAssociationData, BanAppealFormAssociations, ban_appeal_form_association_components,
+use crate::discord::state::settings::existing_partner_ticket_form_set::{
+	ExistingPartnerFormAssociationData, ExistingPartnerFormAssociations, existing_partner_form_association_components,
 };
 use crate::model::{Form, Guild};
 use crate::schema::forms;
@@ -23,7 +23,7 @@ use twilight_model::id::marker::{ApplicationMarker, GuildMarker};
 use twilight_util::builder::InteractionResponseDataBuilder;
 use type_map::concurrent::TypeMap;
 
-/// Sets the form to use for ban appeal tickets
+/// Sets the form to use for existing partner tickets
 pub async fn execute(
 	interaction: &InteractionCreate,
 	guild_id: Id<GuildMarker>,
@@ -59,7 +59,7 @@ pub async fn execute(
 
 	let session_id = cuid2::create_id();
 
-	let components = ban_appeal_form_association_components(&session_id, &guild_forms, None, 0);
+	let components = existing_partner_form_association_components(&session_id, &guild_forms, None, 0);
 
 	let response = InteractionResponseDataBuilder::new().components(components).build();
 	let response = InteractionResponse {
@@ -71,7 +71,7 @@ pub async fn execute(
 		.await
 		.into_diagnostic()?;
 
-	let session_data = BanAppealFormAssociationData {
+	let session_data = ExistingPartnerFormAssociationData {
 		guild_id,
 		all_forms: guild_forms,
 		selected_form_id: None,
@@ -80,7 +80,7 @@ pub async fn execute(
 
 	{
 		let mut state = bot_state.write().await;
-		let all_sessions = state.entry().or_insert_with(BanAppealFormAssociations::default);
+		let all_sessions = state.entry().or_insert_with(ExistingPartnerFormAssociations::default);
 		all_sessions.sessions.insert(session_id.clone(), session_data);
 	}
 
@@ -92,7 +92,7 @@ pub async fn execute(
 async fn expire_session(bot_state: Arc<RwLock<TypeMap>>, session_id: String) {
 	sleep(Duration::from_secs(3600)).await;
 	let mut state = bot_state.write().await;
-	let all_sessions = state.get_mut::<BanAppealFormAssociations>();
+	let all_sessions = state.get_mut::<ExistingPartnerFormAssociations>();
 	if let Some(all_sessions) = all_sessions {
 		all_sessions.sessions.remove(&session_id);
 	}
