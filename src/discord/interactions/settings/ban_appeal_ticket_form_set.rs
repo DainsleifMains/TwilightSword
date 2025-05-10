@@ -98,6 +98,7 @@ async fn selected_form(
 	let mut state = bot_state.write().await;
 
 	let Some(form_sessions) = state.get_mut::<BanAppealFormAssociations>() else {
+		drop(state);
 		let response = InteractionResponseDataBuilder::new()
 			.content(FORM_SESSION_EXPIRED_TEXT)
 			.components(Vec::new())
@@ -114,6 +115,7 @@ async fn selected_form(
 	};
 
 	let Some(session_data) = form_sessions.sessions.get_mut(session_id) else {
+		drop(state);
 		let response = InteractionResponseDataBuilder::new()
 			.content(FORM_SESSION_EXPIRED_TEXT)
 			.components(Vec::new())
@@ -142,6 +144,9 @@ async fn selected_form(
 		session_data.selected_form_id.as_ref(),
 		session_data.current_page,
 	);
+
+	drop(state);
+
 	let updated_message = InteractionResponseDataBuilder::new().components(new_components).build();
 	let response = InteractionResponse {
 		kind: InteractionResponseType::UpdateMessage,
