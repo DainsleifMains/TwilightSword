@@ -351,7 +351,7 @@ async fn update_form_data(guild_id: Option<u64>, form: FormData) -> Result<(), S
 		.question_list
 		.into_iter()
 		.map(|question| FormQuestion {
-			id: if question.id.is_empty() {
+			id: if question.id.starts_with('+') {
 				cuid2::create_id()
 			} else {
 				question.id
