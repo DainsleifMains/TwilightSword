@@ -259,6 +259,14 @@ async fn get_form_data(guild_id: Option<u64>, form_id: String) -> Result<FormDat
 		return Err(ServerFnError::ServerError(String::from("Permission denied")));
 	}
 
+	if form_id == "new" {
+		return Ok(FormData {
+			id: String::new(),
+			title: String::new(),
+			questions: FormDataQuestionList::default(),
+		});
+	}
+
 	let form: Form = forms::table.find(&form_id).first(&mut db_connection)?;
 	let form_questions: Vec<FormQuestion> = form_questions::table
 		.filter(form_questions::form.eq(&form.id))
@@ -330,7 +338,7 @@ async fn update_form_data(guild_id: Option<u64>, form: FormData) -> Result<(), S
 		guild: db_guild_id,
 		title: form.title,
 	};
-	if save_form.id.starts_with('+') {
+	if save_form.id.is_empty() {
 		save_form.id = cuid2::create_id();
 	} else {
 		let form: Form = forms::table.find(&save_form.id).first(&mut db_connection)?;
