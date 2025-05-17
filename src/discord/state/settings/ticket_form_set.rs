@@ -25,7 +25,7 @@ pub fn ticket_form_association_components(
 		(form_list.len() - 1) / 23
 	};
 
-	let page_number = page_number.max(max_page);
+	let page_number = page_number.min(max_page);
 
 	let mut select_options: Vec<SelectMenuOption> = Vec::with_capacity(25);
 	if max_page == 0 {

@@ -10,6 +10,8 @@ use crate::schema::guilds;
 use diesel::prelude::*;
 use diesel::r2d2::{ConnectionManager, Pool};
 use miette::{IntoDiagnostic, bail};
+use std::sync::Arc;
+use tokio::sync::RwLock;
 use twilight_http::client::Client;
 use twilight_model::application::command::CommandOption;
 use twilight_model::application::interaction::application_command::CommandOptionValue;
@@ -21,8 +23,12 @@ use twilight_model::id::Id;
 use twilight_model::id::marker::ApplicationMarker;
 use twilight_util::builder::InteractionResponseDataBuilder;
 use twilight_util::builder::command::{ChannelBuilder, StringBuilder, SubCommandBuilder, SubCommandGroupBuilder};
+use type_map::concurrent::TypeMap;
 
 mod create_category;
+mod form_get;
+mod form_set;
+mod form_unset;
 
 pub fn subcommand_definition() -> CommandOption {
 	let name_option = StringBuilder::new("name", "Name of the new category")
@@ -38,8 +44,12 @@ pub fn subcommand_definition() -> CommandOption {
 		.option(name_option)
 		.option(channel_option);
 
+	let form_get = SubCommandBuilder::new("form_get", "Gets the form for a category");
+	let form_set = SubCommandBuilder::new("form_set", "Sets the form for a category");
+	let form_unset = SubCommandBuilder::new("form_unset", "Unsets the form for a category");
+
 	SubCommandGroupBuilder::new("custom_categories", "Manages custom ticket categories")
-		.subcommands([create])
+		.subcommands([create, form_get, form_set, form_unset])
 		.build()
 }
 
@@ -49,6 +59,7 @@ pub async fn handle_subcommand(
 	http_client: &Client,
 	application_id: Id<ApplicationMarker>,
 	db_connection_pool: Pool<ConnectionManager<PgConnection>>,
+	bot_state: Arc<RwLock<TypeMap>>,
 ) -> miette::Result<()> {
 	let Some(guild_id) = interaction.guild_id else {
 		bail!("Settings command was used outside of a guild");
@@ -110,6 +121,39 @@ pub async fn handle_subcommand(
 				http_client,
 				application_id,
 				&mut db_connection,
+			)
+			.await
+		}
+		"form_get" => {
+			form_get::execute(
+				interaction,
+				&guild,
+				http_client,
+				application_id,
+				&mut db_connection,
+				bot_state,
+			)
+			.await
+		}
+		"form_set" => {
+			form_set::execute(
+				interaction,
+				&guild,
+				http_client,
+				application_id,
+				&mut db_connection,
+				bot_state,
+			)
+			.await
+		}
+		"form_unset" => {
+			form_unset::execute(
+				interaction,
+				&guild,
+				http_client,
+				application_id,
+				&mut db_connection,
+				bot_state,
 			)
 			.await
 		}

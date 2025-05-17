@@ -5,6 +5,10 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 pub mod ban_appeal_ticket_form_set;
+pub mod custom_categories_form_get;
+pub mod custom_categories_form_set;
+pub mod custom_categories_form_unset;
+mod custom_categories_shared;
 pub mod existing_partner_ticket_form_set;
 pub mod new_partner_ticket_form_set;
 pub mod start_ticket_message;

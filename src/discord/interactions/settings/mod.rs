@@ -18,11 +18,14 @@ use twilight_model::id::marker::ApplicationMarker;
 use type_map::concurrent::TypeMap;
 
 mod ban_appeal_ticket_form_set;
+mod custom_categories_form_get;
+mod custom_categories_form_set;
+mod custom_categories_form_unset;
 mod existing_partner_ticket_form_set;
 mod new_partner_ticket_form_set;
 mod start_ticket_message;
 
-const FORM_SESSION_EXPIRED_TEXT: &str = "Form selection expired; please run the command again to select a new form.";
+const SELECT_SESSION_EXPIRED_TEXT: &str = "Selection expired; please run the command again to select values.";
 
 pub async fn route_settings_interaction(
 	interaction: &InteractionCreate,
@@ -38,6 +41,42 @@ pub async fn route_settings_interaction(
 	match next_route.map(|route| route.as_str()) {
 		Some("ban_appeal_ticket_form_set") => {
 			ban_appeal_ticket_form_set::route_ban_appeal_ticket_form_set_interaction(
+				interaction,
+				interaction_data,
+				custom_id_path,
+				http_client,
+				application_id,
+				db_connection_pool,
+				bot_state,
+			)
+			.await
+		}
+		Some("custom_categories_form_get") => {
+			custom_categories_form_get::route_custom_categories_form_get_interaction(
+				interaction,
+				interaction_data,
+				custom_id_path,
+				http_client,
+				application_id,
+				db_connection_pool,
+				bot_state,
+			)
+			.await
+		}
+		Some("custom_categories_form_set") => {
+			custom_categories_form_set::route_custom_categories_form_set_interaction(
+				interaction,
+				interaction_data,
+				custom_id_path,
+				http_client,
+				application_id,
+				db_connection_pool,
+				bot_state,
+			)
+			.await
+		}
+		Some("custom_categories_form_unset") => {
+			custom_categories_form_unset::route_custom_categories_form_unset_interaction(
 				interaction,
 				interaction_data,
 				custom_id_path,

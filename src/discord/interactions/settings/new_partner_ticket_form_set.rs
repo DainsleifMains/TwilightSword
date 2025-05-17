@@ -4,7 +4,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-use super::FORM_SESSION_EXPIRED_TEXT;
+use super::SELECT_SESSION_EXPIRED_TEXT;
 use crate::discord::state::settings::new_partner_ticket_form_set::{
 	NewPartnerFormAssociations, new_partner_form_association_components,
 };
@@ -100,7 +100,7 @@ async fn selected_form(
 	let Some(form_sessions) = state.get_mut::<NewPartnerFormAssociations>() else {
 		drop(state);
 		let response = InteractionResponseDataBuilder::new()
-			.content(FORM_SESSION_EXPIRED_TEXT)
+			.content(SELECT_SESSION_EXPIRED_TEXT)
 			.components(Vec::new())
 			.build();
 		let response = InteractionResponse {
@@ -117,7 +117,7 @@ async fn selected_form(
 	let Some(session_data) = form_sessions.sessions.get_mut(session_id) else {
 		drop(state);
 		let response = InteractionResponseDataBuilder::new()
-			.content(FORM_SESSION_EXPIRED_TEXT)
+			.content(SELECT_SESSION_EXPIRED_TEXT)
 			.components(Vec::new())
 			.build();
 		let response = InteractionResponse {
@@ -182,8 +182,9 @@ async fn submit_form_selection(
 	let session_data = {
 		let mut state = bot_state.write().await;
 		let Some(form_sessions) = state.get_mut::<NewPartnerFormAssociations>() else {
+			drop(state);
 			let response = InteractionResponseDataBuilder::new()
-				.content(FORM_SESSION_EXPIRED_TEXT)
+				.content(SELECT_SESSION_EXPIRED_TEXT)
 				.components(Vec::new())
 				.build();
 			let response = InteractionResponse {
@@ -197,8 +198,9 @@ async fn submit_form_selection(
 			return Ok(());
 		};
 		let Some(session_data) = form_sessions.sessions.remove(session_id) else {
+			drop(state);
 			let response = InteractionResponseDataBuilder::new()
-				.content(FORM_SESSION_EXPIRED_TEXT)
+				.content(SELECT_SESSION_EXPIRED_TEXT)
 				.components(Vec::new())
 				.build();
 			let response = InteractionResponse {

@@ -5,11 +5,11 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use super::SELECT_SESSION_EXPIRED_TEXT;
-use crate::discord::state::settings::existing_partner_ticket_form_set::{
-	ExistingPartnerFormAssociations, existing_partner_form_association_components,
+use crate::discord::state::settings::custom_categories_form_unset::{
+	CustomCategoryFormRemovals, custom_category_form_removal_components,
 };
-use crate::model::{Form, database_id_from_discord_id};
-use crate::schema::{forms, guilds};
+use crate::model::CustomCategory;
+use crate::schema::custom_categories;
 use diesel::prelude::*;
 use diesel::r2d2::{ConnectionManager, Pool};
 use miette::{IntoDiagnostic, bail};
@@ -24,7 +24,7 @@ use twilight_model::id::marker::ApplicationMarker;
 use twilight_util::builder::InteractionResponseDataBuilder;
 use type_map::concurrent::TypeMap;
 
-pub async fn route_existing_partner_ticket_form_set_interaction(
+pub async fn route_custom_categories_form_unset_interaction(
 	interaction: &InteractionCreate,
 	interaction_data: &MessageComponentInteractionData,
 	custom_id_path: &[String],
@@ -42,8 +42,8 @@ pub async fn route_existing_partner_ticket_form_set_interaction(
 	};
 
 	match action.as_str() {
-		"form" => {
-			selected_form(
+		"category" => {
+			selected_category(
 				interaction,
 				interaction_data,
 				custom_id_path,
@@ -54,7 +54,7 @@ pub async fn route_existing_partner_ticket_form_set_interaction(
 			.await
 		}
 		"submit" => {
-			submit_form_selection(
+			submit_category(
 				interaction,
 				interaction_data,
 				custom_id_path,
@@ -66,14 +66,14 @@ pub async fn route_existing_partner_ticket_form_set_interaction(
 			.await
 		}
 		_ => bail!(
-			"Invalid action in custom_id path for existing partner ticket form selection: {}\n{:?}",
+			"Invalid action in custom_id path for custom category form removal: {}\n{:?}",
 			action,
 			interaction_data
 		),
 	}
 }
 
-async fn selected_form(
+async fn selected_category(
 	interaction: &InteractionCreate,
 	interaction_data: &MessageComponentInteractionData,
 	custom_id_path: &[String],
@@ -97,7 +97,7 @@ async fn selected_form(
 
 	let mut state = bot_state.write().await;
 
-	let Some(form_sessions) = state.get_mut::<ExistingPartnerFormAssociations>() else {
+	let Some(data_sessions) = state.get_mut::<CustomCategoryFormRemovals>() else {
 		drop(state);
 		let response = InteractionResponseDataBuilder::new()
 			.content(SELECT_SESSION_EXPIRED_TEXT)
@@ -114,7 +114,7 @@ async fn selected_form(
 		return Ok(());
 	};
 
-	let Some(session_data) = form_sessions.sessions.get_mut(session_id) else {
+	let Some(session_data) = data_sessions.sessions.get_mut(session_id) else {
 		drop(state);
 		let response = InteractionResponseDataBuilder::new()
 			.content(SELECT_SESSION_EXPIRED_TEXT)
@@ -135,22 +135,22 @@ async fn selected_form(
 		let new_page: usize = new_page.parse().into_diagnostic()?;
 		session_data.current_page = new_page;
 	} else {
-		session_data.selected_form_id = Some(selected_value.clone());
+		session_data.selected_id = Some(selected_value.clone());
 	}
 
-	let new_components = existing_partner_form_association_components(
+	let new_components = custom_category_form_removal_components(
 		session_id,
-		&session_data.all_forms,
-		session_data.selected_form_id.as_ref(),
+		&session_data.all_categories,
+		session_data.selected_id.as_ref(),
 		session_data.current_page,
 	);
 
 	drop(state);
 
-	let updated_message = InteractionResponseDataBuilder::new().components(new_components).build();
+	let response = InteractionResponseDataBuilder::new().components(new_components).build();
 	let response = InteractionResponse {
 		kind: InteractionResponseType::UpdateMessage,
-		data: Some(updated_message),
+		data: Some(response),
 	};
 	interaction_client
 		.create_response(interaction.id, &interaction.token, &response)
@@ -160,7 +160,7 @@ async fn selected_form(
 	Ok(())
 }
 
-async fn submit_form_selection(
+async fn submit_category(
 	interaction: &InteractionCreate,
 	interaction_data: &MessageComponentInteractionData,
 	custom_id_path: &[String],
@@ -181,7 +181,7 @@ async fn submit_form_selection(
 
 	let session_data = {
 		let mut state = bot_state.write().await;
-		let Some(form_sessions) = state.get_mut::<ExistingPartnerFormAssociations>() else {
+		let Some(data_sessions) = state.get_mut::<CustomCategoryFormRemovals>() else {
 			drop(state);
 			let response = InteractionResponseDataBuilder::new()
 				.content(SELECT_SESSION_EXPIRED_TEXT)
@@ -197,7 +197,7 @@ async fn submit_form_selection(
 				.into_diagnostic()?;
 			return Ok(());
 		};
-		let Some(session_data) = form_sessions.sessions.remove(session_id) else {
+		let Some(session_data) = data_sessions.sessions.remove(session_id) else {
 			drop(state);
 			let response = InteractionResponseDataBuilder::new()
 				.content(SELECT_SESSION_EXPIRED_TEXT)
@@ -216,9 +216,9 @@ async fn submit_form_selection(
 		session_data
 	};
 
-	let Some(selected_form_id) = session_data.selected_form_id else {
+	let Some(selected_category_id) = session_data.selected_id else {
 		let response = InteractionResponseDataBuilder::new()
-			.content("No form was selected.")
+			.content("No category was selected.")
 			.components(Vec::new())
 			.build();
 		let response = InteractionResponse {
@@ -232,29 +232,26 @@ async fn submit_form_selection(
 		return Ok(());
 	};
 
-	let db_guild_id = database_id_from_discord_id(session_data.guild_id.get());
 	let mut db_connection = db_connection_pool.get().into_diagnostic()?;
 
-	let db_result = diesel::update(guilds::table)
-		.filter(guilds::guild_id.eq(db_guild_id))
-		.set(guilds::existing_partner_ticket_form.eq(&selected_form_id))
+	let no_form: Option<String> = None;
+	let db_result = diesel::update(custom_categories::table)
+		.filter(custom_categories::id.eq(&selected_category_id))
+		.set(custom_categories::form.eq(no_form))
 		.execute(&mut db_connection);
 
 	let response = match db_result {
 		Ok(_) => {
-			let form_data: Form = forms::table
-				.find(&selected_form_id)
+			let category_data: CustomCategory = custom_categories::table
+				.find(&selected_category_id)
 				.first(&mut db_connection)
 				.into_diagnostic()?;
-			let form_name = form_data.title.replace("`", "\\`");
-			format!(
-				"The form for existing partner tickets has been updated to `{}`.",
-				form_name
-			)
+			let category_name = category_data.name.replace("`", "\\`");
+			format!("The form for `{}` has been removed.", category_name)
 		}
 		Err(error) => {
-			tracing::error!(source = ?error, "Failed to update existing partner ticket form");
-			String::from("An error occurred updating the existing partner ticket form.")
+			tracing::error!(source = ?error, "Failed to remove form for custom category");
+			String::from("An internal error prevented removing the form from the category.")
 		}
 	};
 	let response = InteractionResponseDataBuilder::new()
