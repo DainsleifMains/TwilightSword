@@ -9,10 +9,11 @@ use crate::discord::utils::invites::invite_code_from_url;
 use crate::discord::utils::tickets::{MAX_TICKET_TITLE_LENGTH, UserMessageAuthor, staff_message, user_message};
 use crate::discord::utils::timestamp::timestamp_from_id;
 use crate::model::{
-	CustomCategory, Guild, PendingPartnership, Ticket, TicketMessage, TicketRestrictedUser, database_id_from_discord_id,
+	CustomCategory, FormQuestion, Guild, PendingPartnership, Ticket, TicketMessage, TicketRestrictedUser,
+	database_id_from_discord_id,
 };
 use crate::schema::{
-	custom_categories, guilds, pending_partnerships, ticket_messages, ticket_restricted_users, tickets,
+	custom_categories, form_questions, guilds, pending_partnerships, ticket_messages, ticket_restricted_users, tickets,
 };
 use chrono::Utc;
 use diesel::prelude::*;
@@ -462,17 +463,34 @@ async fn confirm_category(
 		)
 	};
 
-	let category_name = match (selected_built_in_category, selected_custom_category) {
-		(Some(category), _) => format!("{}", category),
+	let Some(guild_id) = interaction.guild_id else {
+		bail!("Ticket creation moved outside of a guild");
+	};
+	let db_guild_id = database_id_from_discord_id(guild_id.get());
+	let mut db_connection = db_connection_pool.get().into_diagnostic()?;
+
+	let (category_name, category_form_id) = match (selected_built_in_category, selected_custom_category) {
+		(Some(category), _) => {
+			let guild_data: Guild = guilds::table
+				.find(db_guild_id)
+				.first(&mut db_connection)
+				.into_diagnostic()?;
+			let form_id = match category {
+				BuiltInCategory::BanAppeal => guild_data.ban_appeal_ticket_form,
+				BuiltInCategory::NewPartner => guild_data.new_partner_ticket_form,
+				BuiltInCategory::ExistingPartner => guild_data.existing_partner_ticket_form,
+				BuiltInCategory::MessageReport => None,
+			};
+			(format!("{}", category), form_id)
+		}
 		(_, Some(category_id)) => {
-			let mut db_connection = db_connection_pool.get().into_diagnostic()?;
 			let category: CustomCategory = custom_categories::table
 				.find(&category_id)
 				.first(&mut db_connection)
 				.into_diagnostic()?;
-			category.name
+			(category.name, category.form)
 		}
-		_ => String::new(),
+		_ => (String::new(), None),
 	};
 
 	let mut components: Vec<Component> = Vec::new();
@@ -508,20 +526,75 @@ async fn confirm_category(
 	});
 	components.push(title_row);
 
-	let body_input = Component::TextInput(TextInput {
-		custom_id: String::from("body"),
-		label: String::from("Message"),
-		max_length: None,
-		min_length: None,
-		placeholder: None,
-		required: Some(true),
-		style: TextInputStyle::Paragraph,
-		value: None,
-	});
-	let body_row = Component::ActionRow(ActionRow {
-		components: vec![body_input],
-	});
-	components.push(body_row);
+	match category_form_id {
+		Some(form_id) => {
+			let form_questions: Vec<FormQuestion> = form_questions::table
+				.filter(form_questions::form.eq(&form_id))
+				.order(form_questions::form_position.asc())
+				.load(&mut db_connection)
+				.into_diagnostic()?;
+			let max_separate_questions = if let Some(BuiltInCategory::NewPartner) = selected_built_in_category {
+				// This category has an extra field for the invite URL, which restricts the number of questions we can show as separate fields in the embed.
+				3
+			} else {
+				4
+			};
+			if form_questions.len() <= max_separate_questions {
+				for question in form_questions {
+					let question_input = Component::TextInput(TextInput {
+						custom_id: format!("question/{}", question.id),
+						label: question.question.clone(),
+						max_length: None,
+						min_length: None,
+						placeholder: None,
+						required: Some(true),
+						style: TextInputStyle::Paragraph,
+						value: None,
+					});
+					let question_row = Component::ActionRow(ActionRow {
+						components: vec![question_input],
+					});
+					components.push(question_row);
+				}
+			} else {
+				let mut body = String::new();
+				for question in form_questions {
+					let question = question.question.replace("*", "\\*");
+					body = format!("{}**{}**\n\n\n", body, question);
+				}
+				let body_input = Component::TextInput(TextInput {
+					custom_id: String::from("body"),
+					label: String::from("Message"),
+					max_length: None,
+					min_length: None,
+					placeholder: None,
+					required: Some(true),
+					style: TextInputStyle::Paragraph,
+					value: Some(body),
+				});
+				let body_row = Component::ActionRow(ActionRow {
+					components: vec![body_input],
+				});
+				components.push(body_row);
+			}
+		}
+		None => {
+			let body_input = Component::TextInput(TextInput {
+				custom_id: String::from("body"),
+				label: String::from("Message"),
+				max_length: None,
+				min_length: None,
+				placeholder: None,
+				required: Some(true),
+				style: TextInputStyle::Paragraph,
+				value: None,
+			});
+			let body_row = Component::ActionRow(ActionRow {
+				components: vec![body_input],
+			});
+			components.push(body_row);
+		}
+	}
 
 	let modal_id = format!("create_ticket/{}/message", create_id);
 	let response = InteractionResponseDataBuilder::new()
@@ -548,6 +621,12 @@ fn try_again_text(ticket_title: &str, ticket_message: &str) -> String {
 	)
 }
 
+struct QuestionAnswer {
+	question: String,
+	position: i32,
+	answer: String,
+}
+
 async fn handle_message_modal_data(
 	interaction: &InteractionCreate,
 	modal_data: &ModalInteractionData,
@@ -560,9 +639,25 @@ async fn handle_message_modal_data(
 	let mut invite_url: Option<String> = None;
 	let mut ticket_title: Option<String> = None;
 	let mut ticket_message: Option<String> = None;
+	let mut question_answer_data: Vec<QuestionAnswer> = Vec::new();
+
+	let mut db_connection = db_connection_pool.get().into_diagnostic()?;
 
 	for row in modal_data.components.iter() {
 		for component in row.components.iter() {
+			if let Some(question_id) = component.custom_id.strip_prefix("question/") {
+				let question_data: FormQuestion = form_questions::table
+					.find(question_id)
+					.first(&mut db_connection)
+					.into_diagnostic()?;
+				let answer_data = QuestionAnswer {
+					question: question_data.question.clone(),
+					position: question_data.form_position,
+					answer: component.value.clone().unwrap_or_default(),
+				};
+				question_answer_data.push(answer_data);
+				continue;
+			}
 			match component.custom_id.as_str() {
 				"invite_url" => invite_url = component.value.clone(),
 				"title" => ticket_title = component.value.clone(),
@@ -570,6 +665,20 @@ async fn handle_message_modal_data(
 				_ => (),
 			}
 		}
+	}
+
+	if ticket_message.is_none() && !question_answer_data.is_empty() {
+		let mut new_message = String::new();
+		question_answer_data.sort_by_key(|data| data.position);
+		for data in question_answer_data {
+			let question = data.question.replace("*", "\\*");
+			if new_message.is_empty() {
+				new_message = format!("**{}**\n{}", question, data.answer);
+			} else {
+				new_message = format!("{}\n\n**{}**\n{}", new_message, question, data.answer);
+			}
+		}
+		ticket_message = Some(new_message);
 	}
 
 	let interaction_client = http_client.interaction(application_id);
@@ -750,7 +859,6 @@ async fn handle_message_modal_data(
 		bail!("Guild member doesn't have a user");
 	};
 
-	let mut db_connection = db_connection_pool.get().into_diagnostic()?;
 	let guild_data: Option<Guild> = guilds::table
 		.find(db_guild_id)
 		.first(&mut db_connection)
